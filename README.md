@@ -57,16 +57,6 @@ This project is configured to deploy as a static site to Cloudflare Workers usin
 - **src/worker.ts**: Hono-based worker script for serving static assets
 - **next.config.ts**: Configured for static export
 
-### Custom Domain
-
-To use a custom domain, uncomment and configure the routes section in `wrangler.toml`:
-
-```toml
-routes = [
-  { pattern = "yourdomain.com/*", zone_name = "yourdomain.com" }
-]
-```
-
 ## Project Structure
 
 - Static assets are built to `/out` directory
