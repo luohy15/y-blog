@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import { getBlogPost, formatDate } from '@/lib/blog';
 import Markdown from '@/components/Markdown';
-import TableOfContents from '@/components/TableOfContents';
+import TOCMobile from '@/components/TOCMobile';
+import TOCDesktop from '@/components/TOCDesktop';
 import { extractTocFromMarkdown } from '@/lib/toc';
 
 interface PostPageProps {
@@ -22,11 +23,14 @@ export default async function PostPage({ slug = '', showTime = true, showToc = t
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Mobile TOC */}
+      {showToc && <TOCMobile tocItems={tocItems} />}
+      
       {/* Main content with messages and TOC */}
       <div className="flex justify-center">
         {/* Table of Contents (Desktop) */}
         <div className="hidden sm:block sm:w-[20%] h-[calc(50vh)] fixed left-8 top-20 2xl:left-40">
-          {showToc && tocItems.length > 0 && <TableOfContents tocItems={tocItems} />}
+          {showToc && <TOCDesktop tocItems={tocItems} />}
         </div>
 
         {/* Messages (centered) */}
