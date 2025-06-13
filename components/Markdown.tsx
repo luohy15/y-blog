@@ -3,6 +3,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 import { Components } from 'react-markdown';
 import { generateSlug } from '@/lib/toc';
 
@@ -146,15 +147,29 @@ const markdownComponents: Components = {
   ),
 };
 
+// Function to parse Hugo shortcodes like {{< rawhtml >}} and extract HTML content
+function parseShortcodes(content: string): string {
+  // Replace {{< rawhtml >}} shortcodes with the HTML content inside
+  const rawhtmlRegex = /\{\{<\s*rawhtml\s*>\}\}([\s\S]*?)\{\{<\s*\/rawhtml\s*>\}\}/g;
+  
+  return content.replace(rawhtmlRegex, (match, htmlContent) => {
+    // Return the HTML content with proper spacing
+    return htmlContent.trim();
+  });
+}
+
 export default function Markdown({ content, className = '' }: MarkdownProps) {
+  // Preprocess content to handle Hugo shortcodes
+  const processedContent = parseShortcodes(content);
+
   return (
     <div className={`prose prose-slate max-w-none ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[]}
+        rehypePlugins={[rehypeRaw]}
         components={markdownComponents}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   );
