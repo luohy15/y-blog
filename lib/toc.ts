@@ -1,60 +1,64 @@
 export interface TocItem {
   id: string;
   text: string;
-  level: 1 | 2;
-  children?: TocItem[];
+  level: 2;
 }
 
 export function generateSlug(text: string): string {
-  return text
+  const slug = text
     .toLowerCase()
-    .replace(/[^\w\s-]/g, '') // Remove special characters
+    // Keep Unicode word characters (including Chinese), spaces, and hyphens
+    // Remove only punctuation and special symbols, not Unicode letters/numbers
+    .replace(/[^\p{L}\p{N}\s-]/gu, '') 
     .replace(/\s+/g, '-') // Replace spaces with hyphens
     .replace(/-+/g, '-') // Replace multiple hyphens with single
     .trim()
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+  
+  // Return fallback if slug is empty
+  return slug || 'heading';
 }
 
 export function extractTocFromMarkdown(content: string): TocItem[] {
   const lines = content.split('\n');
   const tocItems: TocItem[] = [];
-  let currentH1: TocItem | null = null;
+  const usedIds = new Set<string>();
+  let headingCounter = 1;
+
+  // Helper function to ensure unique IDs
+  const getUniqueId = (baseId: string): string => {
+    let uniqueId = baseId;
+    let counter = 1;
+    
+    // If baseId is the fallback 'heading', add counter immediately
+    if (baseId === 'heading') {
+      uniqueId = `heading-${headingCounter++}`;
+    }
+    
+    // Ensure uniqueness
+    while (usedIds.has(uniqueId)) {
+      uniqueId = `${baseId}-${counter++}`;
+    }
+    
+    usedIds.add(uniqueId);
+    return uniqueId;
+  };
 
   for (const line of lines) {
     const trimmedLine = line.trim();
     
-    // Match h1 headings (# Title)
-    const h1Match = trimmedLine.match(/^#\s+(.+)$/);
-    if (h1Match) {
-      const text = h1Match[1].trim();
-      const id = generateSlug(text);
-      currentH1 = {
-        id,
-        text,
-        level: 1,
-        children: []
-      };
-      tocItems.push(currentH1);
-      continue;
-    }
-
     // Match h2 headings (## Title)
     const h2Match = trimmedLine.match(/^##\s+(.+)$/);
     if (h2Match) {
       const text = h2Match[1].trim();
-      const id = generateSlug(text);
+      const baseId = generateSlug(text);
+      const id = getUniqueId(baseId);
       const h2Item: TocItem = {
         id,
         text,
         level: 2
       };
-
-      if (currentH1) {
-        currentH1.children!.push(h2Item);
-      } else {
-        // If no h1 parent, treat as top-level
-        tocItems.push(h2Item);
-      }
+      tocItems.push(h2Item);
     }
   }
 

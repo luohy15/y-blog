@@ -3,8 +3,6 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
-import 'highlight.js/styles/github-dark.css';
 import { Components } from 'react-markdown';
 import { generateSlug } from '@/lib/toc';
 
@@ -15,17 +13,8 @@ interface MarkdownProps {
 
 // Custom components for ReactMarkdown
 const markdownComponents: Components = {
-  h1: ({ children }) => {
-    const text = children?.toString() || '';
-    const id = generateSlug(text);
-    return (
-      <h1 
-        id={id}
-        className="text-3xl sm:text-4xl font-bold mt-8 mb-4 first:mt-0 text-slate-900 dark:text-slate-100"
-      >
-        {children}
-      </h1>
-    );
+  h1: () => {
+    return <div></div>
   },
   h2: ({ children }) => {
     const text = children?.toString() || '';
@@ -93,7 +82,7 @@ const markdownComponents: Components = {
         href={href}
         target={isExternal ? '_blank' : undefined}
         rel={isExternal ? 'noopener noreferrer' : undefined}
-        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline decoration-blue-600/30 hover:decoration-blue-600 transition-colors"
+        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline decoration-blue-600/30 hover:decoration-blue-600 transition-colors break-words overflow-wrap-anywhere"
         {...props}
       >
         {children}
@@ -110,7 +99,7 @@ const markdownComponents: Components = {
       {children}
     </em>
   ),
-  code: ({ className, children, ...props }) => {
+  code: ({ children, ...props }) => {
     const content = children?.toString().trim() || '';
     
     // If it's an empty code block, don't render anything
@@ -118,28 +107,18 @@ const markdownComponents: Components = {
       return null;
     }
 
-    // Check if it's inline code (no language class)
-    if (!className) {
-      return (
-        <code 
-          className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-sm font-mono text-pink-600 dark:text-pink-400" 
-          {...props}
-        >
-          {children}
-        </code>
-      );
-    }
-
-    // It's a code block with syntax highlighting
     return (
-      <code className={className} {...props}>
+      <code 
+        className="bg-slate-50/80 dark:bg-slate-800/30 px-2 py-1 rounded-md text-sm font-mono text-slate-700 dark:text-slate-300" 
+        {...props}
+      >
         {children}
       </code>
     );
   },
   pre: ({ children, ...props }) => (
     <pre 
-      className="bg-slate-900 dark:bg-slate-950 p-4 rounded-lg overflow-x-auto mb-4 border border-slate-200 dark:border-slate-800" 
+      className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg overflow-x-auto mb-4 shadow-sm" 
       {...props}
     >
       {children}
@@ -172,7 +151,7 @@ export default function Markdown({ content, className = '' }: MarkdownProps) {
     <div className={`prose prose-slate max-w-none ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeHighlight]}
+        rehypePlugins={[]}
         components={markdownComponents}
       >
         {content}
