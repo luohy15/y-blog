@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { TocItem } from '@/lib/toc';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, List } from 'lucide-react';
@@ -14,6 +14,20 @@ interface TOCMobileProps {
 export default function TOCMobile({ tocItems }: TOCMobileProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { activeId, scrollToSection } = useTocNavigation(tocItems);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsExpanded(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   if (tocItems.length === 0) {
     return null;
@@ -26,7 +40,7 @@ export default function TOCMobile({ tocItems }: TOCMobileProps) {
 
   return (
     <div className="block sm:hidden">
-      <div className="fixed top-4 right-4 z-50">
+      <div className="fixed bottom-4 right-2 z-50" ref={containerRef}>
         <Button
           variant="outline"
           onClick={() => setIsExpanded(!isExpanded)}
@@ -36,7 +50,7 @@ export default function TOCMobile({ tocItems }: TOCMobileProps) {
         </Button>
         
         {isExpanded && (
-          <div className="absolute top-14 right-0 w-64 max-w-[calc(100vw-2rem)] p-4 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-lg border border-slate-200 dark:border-slate-700 shadow-xl">
+          <div className="absolute bottom-14 right-0 w-64 max-w-[calc(100vw-2rem)] p-4 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-lg border border-slate-200 dark:border-slate-700 shadow-xl">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                 Table of Contents
