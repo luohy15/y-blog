@@ -2,13 +2,29 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import LanguageSwitcher from './LanguageSwitcher';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { addLanguageToPath, removeLanguageFromPath } from '@/lib/language';
+import { useTranslations } from '@/lib/translations';
 
 export default function Header() {
   const pathname = usePathname();
+  const { currentLanguage } = useLanguage();
+  const t = useTranslations(currentLanguage);
+  
+  const cleanPath = removeLanguageFromPath(pathname);
 
   const navigation = [
-    { name: 'About', href: '/', active: pathname === '/' },
-    { name: 'Writing', href: '/writing', active: pathname === '/writing' },
+    { 
+      name: t.nav.about, 
+      href: addLanguageToPath('/', currentLanguage),
+      active: cleanPath === '/' 
+    },
+    { 
+      name: t.nav.writing, 
+      href: addLanguageToPath('/writing', currentLanguage),
+      active: cleanPath === '/writing' 
+    },
   ];
 
   return (
@@ -37,6 +53,11 @@ export default function Header() {
             </Link>
           ))}
         </nav>
+
+        {/* Language Switcher */}
+        <div className="ml-auto">
+          <LanguageSwitcher />
+        </div>
       </div>
     </header>
   );

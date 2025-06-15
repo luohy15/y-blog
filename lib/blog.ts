@@ -1,3 +1,5 @@
+import { LanguageCode } from './language';
+
 export interface BlogPost {
   title: string;
   create_time: string;
@@ -5,9 +7,15 @@ export interface BlogPost {
   url: string;
 }
 
-export async function getBlogPosts(): Promise<BlogPost[]> {
+export async function getBlogPosts(language?: LanguageCode): Promise<BlogPost[]> {
   try {
-    const response = await fetch('https://cdn.1u0hy.com/index.jsonl');
+    // Construct URL based on language
+    const baseUrl = 'https://cdn.1u0hy.com';
+    const url = language && language !== 'en' 
+      ? `${baseUrl}/${language}/index.jsonl`
+      : `${baseUrl}/index.jsonl`;
+    
+    const response = await fetch(url);
     
     if (!response.ok) {
       throw new Error('Failed to fetch blog posts');
@@ -37,14 +45,14 @@ export async function getBlogPosts(): Promise<BlogPost[]> {
   }
 }
 
-export async function getBlogPost(slug: string): Promise<{ post: BlogPost; content: string } | null> {
+export async function getBlogPost(slug: string, language?: LanguageCode): Promise<{ post: BlogPost; content: string } | null> {
   try {
     // Special case for 'about' page - when slug is 'about' or empty
     if (!slug) {
       slug = 'about';
     }
 
-    const posts = await getBlogPosts();
+    const posts = await getBlogPosts(language);
     
     // Find post by matching the filename in the URL with the slug
     const post = posts.find(p => {
@@ -72,9 +80,15 @@ export async function getBlogPost(slug: string): Promise<{ post: BlogPost; conte
   }
 }
 
-export function formatDate(dateString: string): string {
+export function formatDate(dateString: string, language?: LanguageCode): string {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
+  const languageMap: { [key in LanguageCode]?: string } = {
+    'zhs': 'zh-Hans',
+    'zht': 'zh-Hant',
+  };
+  const locale = language ? languageMap[language] || language : 'en-US';
+
+  return date.toLocaleDateString(locale, {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
