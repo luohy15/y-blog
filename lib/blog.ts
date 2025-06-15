@@ -15,7 +15,11 @@ export async function getBlogPosts(language?: LanguageCode): Promise<BlogPost[]>
       ? `${baseUrl}/${language}/index.jsonl`
       : `${baseUrl}/index.jsonl`;
     
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'text/plain; charset=utf-8',
+      },
+    });
     
     if (!response.ok) {
       throw new Error('Failed to fetch blog posts');
@@ -65,7 +69,11 @@ export async function getBlogPost(slug: string, language?: LanguageCode): Promis
     }
     
     // Fetch the markdown content
-    const response = await fetch(post.url);
+    const response = await fetch(post.url, {
+      headers: {
+        'Accept': 'text/plain; charset=utf-8',
+      },
+    });
     
     if (!response.ok) {
       throw new Error('Failed to fetch post content');

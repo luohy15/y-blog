@@ -162,6 +162,12 @@ export default function Markdown({ content, className = '' }: MarkdownProps) {
   // Preprocess content to handle Hugo shortcodes
   const processedContent = parseShortcodes(content);
 
+  // Add error boundary and validation for content
+  if (!processedContent || typeof processedContent !== 'string') {
+    console.error('Invalid markdown content:', processedContent);
+    return <div className="text-red-500">Error: Invalid content</div>;
+  }
+
   return (
     <div className={`prose prose-slate max-w-none ${className}`}>
       <ReactMarkdown
