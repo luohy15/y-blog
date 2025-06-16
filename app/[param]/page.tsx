@@ -1,11 +1,29 @@
 import PostPage from '@/components/PostPage';
 import { LanguageCode } from '@/lib/language';
 import { getBlogPost } from '@/lib/blog';
+import type { Metadata } from 'next';
+import { generateBlogMetadata } from '@/lib/metadata';
 
 interface PageProps {
   params: Promise<{
     param: string;
   }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { param } = await params;
+  
+  // Check if param is a language code
+  const validLanguages: LanguageCode[] = ['ja', 'zhs', 'zht'];
+  const isLanguage = validLanguages.includes(param as LanguageCode);
+  
+  if (isLanguage) {
+    // About page for the language
+    return generateBlogMetadata('about', param as LanguageCode, "About - Huayi Luo");
+  } else {
+    // Blog post slug
+    return generateBlogMetadata(param);
+  }
 }
 
 export default async function ParamPage({ params }: PageProps) {

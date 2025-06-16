@@ -1,10 +1,26 @@
 import { LanguageCode } from '@/lib/language';
 import WritingListPage from '@/components/WritingListPage';
+import type { Metadata } from 'next';
+import { generateWritingMetadata } from '@/lib/metadata';
 
 interface PageProps {
   params: Promise<{
     param: string;
   }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { param } = await params;
+  
+  // Verify param is a valid language code
+  const validLanguages: LanguageCode[] = ['ja', 'zhs', 'zht'];
+  if (!validLanguages.includes(param as LanguageCode)) {
+    return {
+      title: "Huayi Luo"
+    };
+  }
+  
+  return generateWritingMetadata(param as LanguageCode);
 }
 
 export async function generateStaticParams() {

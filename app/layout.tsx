@@ -16,8 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Y Blog",
-  description: "A minimal blog powered by Next.js",
+  title: "Huayi Luo"
 };
 
 export default function RootLayout({
