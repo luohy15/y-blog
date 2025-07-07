@@ -50,8 +50,8 @@ export default function TOCMobile({ tocItems }: TOCMobileProps) {
         </Button>
         
         {isExpanded && (
-          <div className="absolute bottom-14 right-0 w-64 max-w-[calc(100vw-2rem)] p-4 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-lg border border-slate-200 dark:border-slate-700 shadow-xl">
-            <div className="flex items-center justify-between mb-3">
+          <div className="absolute bottom-14 right-0 w-64 max-w-[calc(100vw-2rem)] max-h-[60vh] p-4 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-lg border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between mb-3 flex-shrink-0">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                 Table of Contents
               </h3>
@@ -62,11 +62,13 @@ export default function TOCMobile({ tocItems }: TOCMobileProps) {
                 <ChevronDown className="w-4 h-4" />
               </button>
             </div>
-            <TocContent 
-              tocItems={tocItems} 
-              activeId={activeId} 
-              onItemClick={handleItemClick} 
-            />
+            <div className="overflow-y-auto">
+              <TocContent 
+                tocItems={tocItems} 
+                activeId={activeId} 
+                onItemClick={handleItemClick} 
+              />
+            </div>
           </div>
         )}
       </div>

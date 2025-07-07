@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { Components } from 'react-markdown';
 import { generateSlug } from '@/lib/toc';
+import JsonDisplay from './JsonDisplay';
 
 interface MarkdownProps {
   content: string;
@@ -145,17 +146,38 @@ const markdownComponents: Components = {
       {children}
     </td>
   ),
+  div: ({ className, ...props }) => {
+    // Check if this is a json-display placeholder
+    if (className?.includes('json-display-placeholder')) {
+      const url = (props as Record<string, unknown>)['data-json-display'] as string;
+      if (url) {
+        return <JsonDisplay url={url} className="my-6" />;
+      }
+    }
+    // Regular div
+    return <div className={className} {...props} />;
+  },
 };
 
-// Function to parse Hugo shortcodes like {{< rawhtml >}} and extract HTML content
+// Function to parse Hugo shortcodes like {{< rawhtml >}} and {{< json-display >}}
 function parseShortcodes(content: string): string {
+  let processedContent = content;
+  
   // Replace {{< rawhtml >}} shortcodes with the HTML content inside
   const rawhtmlRegex = /\{\{<\s*rawhtml\s*>\}\}([\s\S]*?)\{\{<\s*\/rawhtml\s*>\}\}/g;
-  
-  return content.replace(rawhtmlRegex, (match, htmlContent) => {
+  processedContent = processedContent.replace(rawhtmlRegex, (match, htmlContent) => {
     // Return the HTML content with proper spacing
     return htmlContent.trim();
   });
+  
+  // Replace {{< json-display >}}URL{{< /json-display >}} with special HTML element
+  const jsonDisplayRegex = /\{\{<\s*json-display\s*>\}\}([\s\S]*?)\{\{<\s*\/json-display\s*>\}\}/g;
+  processedContent = processedContent.replace(jsonDisplayRegex, (match, url) => {
+    const cleanUrl = url.trim();
+    return `<div data-json-display="${cleanUrl}" class="json-display-placeholder"></div>`;
+  });
+  
+  return processedContent;
 }
 
 export default function Markdown({ content, className = '' }: MarkdownProps) {
