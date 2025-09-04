@@ -44,6 +44,40 @@ export default async function PostPage({ slug = '', lang, showTime = true, showT
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4 leading-tight">
                 {post.title}
               </h1>
+              
+              {/* Tags */}
+              {post.tags && post.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {post.tags.map((tag, index) => {
+                    // Generate consistent colors based on tag content
+                    const colors = [
+                      'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
+                      'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+                      'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
+                      'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
+                      'bg-rose-100 text-rose-800 border-rose-200 hover:bg-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800',
+                      'bg-cyan-100 text-cyan-800 border-cyan-200 hover:bg-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800',
+                    ];
+                    
+                    // Simple hash function to consistently assign colors
+                    const hash = tag.split('').reduce((a, b) => {
+                      a = ((a << 5) - a) + b.charCodeAt(0);
+                      return a & a;
+                    }, 0);
+                    const colorClass = colors[Math.abs(hash) % colors.length];
+                    
+                    return (
+                      <span
+                        key={index}
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium transition-colors border ${colorClass}`}
+                      >
+                        {tag}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+              
               {showTime && (
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">

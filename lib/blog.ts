@@ -5,6 +5,13 @@ export interface BlogPost {
   create_time: string;
   update_time: string;
   url: string;
+  tags?: string[];
+}
+
+interface Frontmatter {
+  created?: string;
+  updated?: string;
+  tags?: string[];
 }
 
 export async function getBlogPosts(language?: LanguageCode): Promise<BlogPost[]> {
@@ -49,6 +56,52 @@ export async function getBlogPosts(language?: LanguageCode): Promise<BlogPost[]>
   }
 }
 
+function parseFrontmatter(content: string): { frontmatter: Frontmatter | null; content: string } {
+  const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
+  const match = content.match(frontmatterRegex);
+  
+  if (!match) {
+    return { frontmatter: null, content };
+  }
+  
+  const frontmatterText = match[1];
+  const markdownContent = match[2];
+  
+  try {
+    const frontmatter: Frontmatter = {};
+    
+    // Parse YAML-like frontmatter
+    const lines = frontmatterText.split('\n');
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine || trimmedLine.startsWith('#')) continue;
+      
+      if (trimmedLine.includes(':')) {
+        const [key, ...valueParts] = trimmedLine.split(':');
+        const value = valueParts.join(':').trim();
+        
+        if (key.trim() === 'created' || key.trim() === 'updated') {
+          frontmatter[key.trim() as 'created' | 'updated'] = value;
+        } else if (key.trim() === 'tags') {
+          // Parse tags array [tag1, tag2, tag3]
+          const tagsMatch = value.match(/\[(.*?)\]/);
+          if (tagsMatch) {
+            frontmatter.tags = tagsMatch[1]
+              .split(',')
+              .map(tag => tag.trim().replace(/['"]/g, ''))
+              .filter(tag => tag.length > 0);
+          }
+        }
+      }
+    }
+    
+    return { frontmatter, content: markdownContent };
+  } catch (error) {
+    console.error('Error parsing frontmatter:', error);
+    return { frontmatter: null, content };
+  }
+}
+
 export async function getBlogPost(slug: string, language?: LanguageCode): Promise<{ post: BlogPost; content: string } | null> {
   try {
     // Special case for 'about' page - when slug is 'about' or empty
@@ -79,9 +132,18 @@ export async function getBlogPost(slug: string, language?: LanguageCode): Promis
       throw new Error('Failed to fetch post content');
     }
     
-    const content = await response.text();
+    const rawContent = await response.text();
+    const { frontmatter, content } = parseFrontmatter(rawContent);
     
-    return { post, content };
+    // Create updated post with frontmatter data taking priority
+    const updatedPost: BlogPost = {
+      ...post,
+      create_time: frontmatter?.created || post.create_time,
+      update_time: frontmatter?.updated || post.update_time,
+      tags: frontmatter?.tags || []
+    };
+    
+    return { post: updatedPost, content };
   } catch (error) {
     console.error('Error fetching blog post:', error);
     return null;
