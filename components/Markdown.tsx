@@ -77,13 +77,27 @@ const markdownComponents: Components = {
       </div>
     </blockquote>
   ),
-  a: ({ href, children, ...props }) => {
+  a: ({ href, children, onClick, ...props }) => {
     const isExternal = href && (href.startsWith('http') || href.startsWith('https'));
+
+    // Handle onclick string conversion
+    const handleClick = onClick && typeof onClick === 'string'
+      ? () => {
+          try {
+            // Execute the onclick string as code (for gtag calls etc.)
+            eval(onClick);
+          } catch (error) {
+            console.error('Error executing onclick:', error);
+          }
+        }
+      : onClick;
+
     return (
       <a
         href={href}
         target={isExternal ? '_blank' : undefined}
         rel={isExternal ? 'noopener noreferrer' : undefined}
+        onClick={handleClick}
         className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline decoration-blue-600/30 hover:decoration-blue-600 transition-colors break-words overflow-wrap-anywhere"
         {...props}
       >
