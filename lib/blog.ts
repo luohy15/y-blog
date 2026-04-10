@@ -17,7 +17,7 @@ interface Frontmatter {
 export async function getBlogPosts(language?: LanguageCode): Promise<BlogPost[]> {
   try {
     // Construct URL based on language
-    const baseUrl = 'https://cdn.luohy15.com';
+    const baseUrl = 'https://cdn.luohy15.com/blog';
     const url = language && language !== 'en' 
       ? `${baseUrl}/${language}/index.jsonl`
       : `${baseUrl}/index.jsonl`;
