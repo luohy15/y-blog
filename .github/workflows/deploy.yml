@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Workers
+name: Deploy to S3
 
 on:
   repository_dispatch:
@@ -7,12 +7,22 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    name: Deploy
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy to Cloudflare Workers
-        uses: cloudflare/wrangler-action@v3
+      - uses: actions/setup-node@v4
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          node-version: '20'
+      - run: npm ci
+      - run: npm run build
         env:
-          NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
+          VITE_GA_MEASUREMENT_ID: ${{ secrets.GA_MEASUREMENT_ID }}
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Deploy to S3
+        env:
+          WEB_BUCKET_NAME: ${{ secrets.WEB_BUCKET_NAME }}
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+        run: bash scripts/deploy.sh

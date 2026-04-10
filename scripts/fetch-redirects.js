@@ -17,7 +17,7 @@ async function fetchRedirects() {
     const redirects = await response.json();
     const newContent = JSON.stringify(redirects, null, 2);
 
-    // Write to src directory so it can be imported by worker
+    // Write to src directory so it can be imported statically
     const outputPath = join(__dirname, '../src/redirects.json');
 
     // Only write if content has changed to avoid triggering unnecessary rebuilds
@@ -29,9 +29,9 @@ async function fetchRedirects() {
 
     if (shouldWrite) {
       writeFileSync(outputPath, newContent);
-      console.log('✓ Redirects fetched and saved');
+      console.log('Redirects fetched and saved');
     } else {
-      console.log('✓ Redirects unchanged, skipping write');
+      console.log('Redirects unchanged, skipping write');
     }
   } catch (error) {
     console.warn('Error fetching redirects:', error.message);
