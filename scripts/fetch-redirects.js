@@ -7,7 +7,7 @@ const __dirname = dirname(__filename);
 
 async function fetchRedirects() {
   try {
-    const response = await fetch('https://cdn.1u0hy.com/redirects.json');
+    const response = await fetch('https://cdn.luohy15.com/redirects.json');
 
     if (!response.ok) {
       console.warn('Failed to fetch redirects, using empty redirects');
