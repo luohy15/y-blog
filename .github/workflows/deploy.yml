@@ -4,6 +4,10 @@ on:
   repository_dispatch:
     types: [deploy]
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -13,16 +17,19 @@ jobs:
         with:
           node-version: '20'
       - run: npm ci
+      - name: Parse config
+        run: |
+          CONFIG='${{ secrets.CONFIG }}'
+          echo "$CONFIG" | jq -r 'to_entries | .[] | "\(.key)=\(.value)"' >> $GITHUB_ENV
+          echo "$CONFIG" | jq -r '.[]' | while read -r value; do
+            [ -n "$value" ] && echo "::add-mask::$value"
+          done
       - run: npm run build
         env:
-          VITE_GA_MEASUREMENT_ID: ${{ secrets.GA_MEASUREMENT_ID }}
+          VITE_GA_MEASUREMENT_ID: ${{ env.GA_MEASUREMENT_ID }}
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
       - name: Deploy to S3
-        env:
-          WEB_BUCKET_NAME: ${{ secrets.WEB_BUCKET_NAME }}
-          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
         run: bash scripts/deploy.sh
