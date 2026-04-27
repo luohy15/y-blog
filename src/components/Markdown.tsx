@@ -2,8 +2,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { Components } from 'react-markdown';
+import { useMemo } from 'react';
 import { generateSlug } from '@/lib/toc';
 import JsonDisplay from './JsonDisplay';
+import { ImageGalleryProvider, useGallery } from './Lightbox';
 
 interface MarkdownProps {
   content: string;
@@ -168,7 +170,52 @@ const markdownComponents: Components = {
     // Regular div
     return <div className={className} {...props} />;
   },
+  img: ({ src, alt, className, ...props }) => {
+    const { images, open } = useGallery();
+    const url = typeof src === 'string' ? src : '';
+    const index = url ? images.indexOf(url) : -1;
+    const clickable = index >= 0;
+    return (
+      <img
+        src={url || undefined}
+        alt={alt}
+        loading="lazy"
+        className={`rounded-md max-w-full h-auto my-4 ${clickable ? 'cursor-zoom-in' : ''} ${className ?? ''}`.trim()}
+        onClick={clickable ? () => open(index) : undefined}
+        {...props}
+      />
+    );
+  },
 };
+
+// Extract image URLs from markdown content in document order.
+// Covers both `![alt](url)` and raw `<img src="url">` (rehype-raw enabled).
+function extractImageUrls(content: string): string[] {
+  const urls: string[] = [];
+  const seen = new Set<string>();
+
+  const mdImg = /!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+  const htmlImg = /<img\b[^>]*\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)')/gi;
+
+  const push = (url: string) => {
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    urls.push(url);
+  };
+
+  let m: RegExpExecArray | null;
+  const hits: { index: number; url: string }[] = [];
+  while ((m = mdImg.exec(content)) !== null) {
+    hits.push({ index: m.index, url: m[1] });
+  }
+  while ((m = htmlImg.exec(content)) !== null) {
+    hits.push({ index: m.index, url: m[1] || m[2] });
+  }
+  hits.sort((a, b) => a.index - b.index);
+  for (const h of hits) push(h.url);
+
+  return urls;
+}
 
 // Function to parse Hugo shortcodes like {{< rawhtml >}} and {{< json-display >}}
 function parseShortcodes(content: string): string {
@@ -195,6 +242,11 @@ export default function Markdown({ content, className = '' }: MarkdownProps) {
   // Preprocess content to handle Hugo shortcodes
   const processedContent = parseShortcodes(content);
 
+  const images = useMemo(
+    () => (typeof processedContent === 'string' ? extractImageUrls(processedContent) : []),
+    [processedContent],
+  );
+
   // Add error boundary and validation for content
   if (!processedContent || typeof processedContent !== 'string') {
     console.error('Invalid markdown content:', processedContent);
@@ -203,13 +255,15 @@ export default function Markdown({ content, className = '' }: MarkdownProps) {
 
   return (
     <div className={`prose prose-slate max-w-none ${className}`}>
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw]}
-        components={markdownComponents}
-      >
-        {processedContent}
-      </ReactMarkdown>
+      <ImageGalleryProvider images={images}>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
+          components={markdownComponents}
+        >
+          {processedContent}
+        </ReactMarkdown>
+      </ImageGalleryProvider>
     </div>
   );
 }
