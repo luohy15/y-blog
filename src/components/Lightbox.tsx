@@ -8,7 +8,7 @@ import {
   ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
 
 interface GalleryContextValue {
   images: string[];
@@ -79,6 +79,7 @@ export function ImageGalleryProvider({ images, children }: ImageGalleryProviderP
 
 function Lightbox() {
   const { images, currentIndex, isOpen, close, next, prev } = useGallery();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -99,9 +100,31 @@ function Lightbox() {
     };
   }, [isOpen, close, next, prev]);
 
-  if (!isOpen || currentIndex < 0 || currentIndex >= images.length) return null;
+  const src =
+    isOpen && currentIndex >= 0 && currentIndex < images.length
+      ? images[currentIndex]
+      : null;
 
-  const src = images[currentIndex];
+  useEffect(() => {
+    if (!src) return;
+    setLoading(true);
+  }, [src]);
+
+  useEffect(() => {
+    if (!isOpen || images.length <= 1 || currentIndex < 0) return;
+    const neighbors = [
+      images[(currentIndex + 1) % images.length],
+      images[(currentIndex - 1 + images.length) % images.length],
+    ];
+    neighbors.forEach((url) => {
+      if (!url) return;
+      const img = new Image();
+      img.src = url;
+    });
+  }, [isOpen, images, currentIndex]);
+
+  if (!src) return null;
+
   const hasMultiple = images.length > 1;
 
   return createPortal(
@@ -137,12 +160,27 @@ function Lightbox() {
         </button>
       )}
 
-      <img
-        src={src}
-        alt=""
-        className="max-w-[95vw] max-h-[90vh] object-contain select-none"
+      <div
+        className="relative flex items-center justify-center"
         onClick={(e) => e.stopPropagation()}
-      />
+      >
+        {loading && (
+          <Loader2
+            aria-hidden="true"
+            className="absolute w-10 h-10 text-white/80 animate-spin"
+          />
+        )}
+        <img
+          key={src}
+          src={src}
+          alt=""
+          className={`max-w-[95vw] max-h-[90vh] object-contain select-none transition-opacity duration-200 ${
+            loading ? 'opacity-0' : 'opacity-100'
+          }`}
+          onLoad={() => setLoading(false)}
+          onError={() => setLoading(false)}
+        />
+      </div>
 
       {hasMultiple && (
         <button
