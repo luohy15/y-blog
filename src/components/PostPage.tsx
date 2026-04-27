@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getBlogPost, formatDate, getPostHref } from '@/lib/blog';
+import { getBlogPost, formatDate, getPostHref, getDateSegments } from '@/lib/blog';
 import { LanguageCode } from '@/lib/language';
 import { getTranslation } from '@/lib/translations';
 import Markdown from '@/components/Markdown';
@@ -14,9 +14,10 @@ interface PostPageProps {
   lang?: LanguageCode;
   showTime?: boolean;
   showToc?: boolean;
+  expectedDate?: { yyyy: string; mm: string; dd: string };
 }
 
-export default function PostPage({ slug = '', lang, showTime = true, showToc = true }: PostPageProps) {
+export default function PostPage({ slug = '', lang, showTime = true, showToc = true, expectedDate }: PostPageProps) {
   const [post, setPost] = useState<BlogPost | null>(null);
   const [content, setContent] = useState<string>('');
   const [tocItems, setTocItems] = useState<TocItem[]>([]);
@@ -40,6 +41,15 @@ export default function PostPage({ slug = '', lang, showTime = true, showToc = t
         return;
       }
 
+      if (expectedDate) {
+        const segs = getDateSegments(result.post.create_time);
+        if (!segs || segs.yyyy !== expectedDate.yyyy || segs.mm !== expectedDate.mm || segs.dd !== expectedDate.dd) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+      }
+
       setPost(result.post);
       setContent(result.content);
       setTocItems(showToc ? extractTocFromMarkdown(result.content) : []);
@@ -54,7 +64,7 @@ export default function PostPage({ slug = '', lang, showTime = true, showToc = t
     fetchPost();
 
     return () => { cancelled = true; };
-  }, [slug, lang, showToc]);
+  }, [slug, lang, showToc, expectedDate?.yyyy, expectedDate?.mm, expectedDate?.dd]);
 
   useEffect(() => {
     if (!post || slug === 'about') return;

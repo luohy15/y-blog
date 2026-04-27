@@ -10,9 +10,9 @@ const NotFound = () => (
   </div>
 );
 
-const isYear = (s?: string) => !!s && /^\d{4}$/.test(s);
-const isMonth = (s?: string) => !!s && /^(0[1-9]|1[0-2])$/.test(s);
-const isDay = (s?: string) => !!s && /^(0[1-9]|[12]\d|3[01])$/.test(s);
+const isYear = (s?: string): s is string => !!s && /^\d{4}$/.test(s);
+const isMonth = (s?: string): s is string => !!s && /^(0[1-9]|1[0-2])$/.test(s);
+const isDay = (s?: string): s is string => !!s && /^(0[1-9]|[12]\d|3[01])$/.test(s);
 
 export default function PostPageRoute() {
   const { param, slug, yyyy, mm, dd, lang } = useParams<{
@@ -44,7 +44,7 @@ export default function PostPageRoute() {
     }
 
     const finalSlug = slug in redirectMap ? redirectMap[slug] : slug;
-    return <PostPage slug={finalSlug} lang={resolvedLang} showToc={true} />;
+    return <PostPage slug={finalSlug} lang={resolvedLang} showToc={true} expectedDate={{ yyyy, mm, dd }} />;
   }
 
   // Legacy 1-segment / 2-segment paths
