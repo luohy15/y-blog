@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getBlogPost, formatDate } from '@/lib/blog';
+import { getBlogPost, formatDate, getPostHref } from '@/lib/blog';
 import { LanguageCode } from '@/lib/language';
 import { getTranslation } from '@/lib/translations';
 import Markdown from '@/components/Markdown';
@@ -55,6 +55,26 @@ export default function PostPage({ slug = '', lang, showTime = true, showToc = t
 
     return () => { cancelled = true; };
   }, [slug, lang, showToc]);
+
+  useEffect(() => {
+    if (!post || slug === 'about') return;
+
+    const href = window.location.origin + getPostHref(post, lang);
+    let link = document.head.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    const created = !link;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'canonical';
+      document.head.appendChild(link);
+    }
+    link.href = href;
+
+    return () => {
+      if (created && link && link.parentNode) {
+        link.parentNode.removeChild(link);
+      }
+    };
+  }, [post, lang, slug]);
 
   if (loading) {
     return (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getBlogPosts, formatDate, getSlugFromUrl } from '@/lib/blog';
+import { getBlogPosts, formatDate, getPostHref } from '@/lib/blog';
 import { getTranslation } from '@/lib/translations';
 import { LanguageCode } from '@/lib/language';
 import type { BlogPost } from '@/lib/blog';
@@ -49,8 +49,7 @@ export default function WritingListPage({ language = 'en' }: WritingListPageProp
           ) : (
             <div className="space-y-2">
               {posts.map((post) => {
-                const slug = getSlugFromUrl(post.url);
-                const linkHref = language !== 'en' ? `/${language}/${slug}` : `/${slug}`;
+                const linkHref = getPostHref(post, language);
 
                 return (
                   <article key={post.url} className="group">

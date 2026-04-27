@@ -170,3 +170,19 @@ export function getSlugFromUrl(url: string): string {
   const filename = urlParts[urlParts.length - 1];
   return filename.replace('.md', '');
 }
+
+export function getDateSegments(createTime: string): { yyyy: string; mm: string; dd: string } | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(createTime || '');
+  if (!m) return null;
+  return { yyyy: m[1], mm: m[2], dd: m[3] };
+}
+
+export function getPostHref(post: BlogPost, lang?: LanguageCode): string {
+  const slug = getSlugFromUrl(post.url);
+  const langPrefix = lang && lang !== 'en' ? `/${lang}` : '';
+  const segs = getDateSegments(post.create_time);
+  if (!segs) {
+    return `${langPrefix}/${slug}`;
+  }
+  return `${langPrefix}/${segs.yyyy}/${segs.mm}/${segs.dd}/${slug}`;
+}

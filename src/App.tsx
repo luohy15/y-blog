@@ -19,6 +19,8 @@ export default function App() {
             <Route path="/:param" element={<PostPageRoute />} />
             <Route path="/:param/writing" element={<WritingPage />} />
             <Route path="/:param/:slug" element={<PostPageRoute />} />
+            <Route path="/:yyyy/:mm/:dd/:slug" element={<PostPageRoute />} />
+            <Route path="/:lang/:yyyy/:mm/:dd/:slug" element={<PostPageRoute />} />
           </Routes>
         </main>
       </div>
