@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import { LanguageProvider } from './contexts/LanguageContext';
 import HtmlLangUpdater from './components/HtmlLangUpdater';
+import ScrollToTop from './components/ScrollToTop';
 import Header from './components/Header';
 import HomePage from './pages/HomePage';
 import WritingPage from './pages/WritingPage';
@@ -10,6 +11,7 @@ export default function App() {
   return (
     <LanguageProvider>
       <HtmlLangUpdater />
+      <ScrollToTop />
       <div className="min-h-screen bg-background font-sans antialiased">
         <Header />
         <main className="flex-1 pt-20">
