@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 
 interface GalleryContextValue {
   images: string[];
@@ -170,16 +171,30 @@ function Lightbox() {
             className="absolute w-10 h-10 text-white/80 animate-spin"
           />
         )}
-        <img
+        <TransformWrapper
           key={src}
-          src={src}
-          alt=""
-          className={`max-w-[95vw] max-h-[90vh] object-contain select-none transition-opacity duration-200 ${
-            loading ? 'opacity-0' : 'opacity-100'
-          }`}
-          onLoad={() => setLoading(false)}
-          onError={() => setLoading(false)}
-        />
+          minScale={1}
+          maxScale={8}
+          limitToBounds={false}
+          doubleClick={{ mode: 'reset' }}
+          wheel={{ step: 0.2 }}
+        >
+          <TransformComponent
+            wrapperClass="!max-w-[95vw] !max-h-[90vh] !overflow-hidden"
+            contentClass="!flex !items-center !justify-center"
+          >
+            <img
+              src={src}
+              alt=""
+              className={`max-w-[95vw] max-h-[90vh] object-contain select-none transition-opacity duration-200 ${
+                loading ? 'opacity-0' : 'opacity-100'
+              }`}
+              draggable={false}
+              onLoad={() => setLoading(false)}
+              onError={() => setLoading(false)}
+            />
+          </TransformComponent>
+        </TransformWrapper>
       </div>
 
       {hasMultiple && (
