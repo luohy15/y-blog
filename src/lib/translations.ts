@@ -10,6 +10,7 @@ export const translations = {
       noPosts: 'No posts yet',
       created: 'Created',
       updated: 'Updated',
+      history: 'History',
     },
   },
   ja: {
@@ -21,6 +22,7 @@ export const translations = {
       noPosts: 'まだ投稿がありません',
       created: '作成',
       updated: '更新',
+      history: '履歴',
     },
   },
   zhs: {
@@ -32,6 +34,7 @@ export const translations = {
       noPosts: '暂无文章',
       created: '创建',
       updated: '更新',
+      history: '历史',
     },
   },
   zht: {
@@ -43,6 +46,7 @@ export const translations = {
       noPosts: '暫無文章',
       created: '建立',
       updated: '更新',
+      history: '歷史',
     },
   },
 } as const;

@@ -177,6 +177,12 @@ export function getDateSegments(createTime: string): { yyyy: string; mm: string;
   return { yyyy: m[1], mm: m[2], dd: m[3] };
 }
 
+export function getPostHistoryUrl(post: BlogPost): string | null {
+  const m = /^https?:\/\/[^/]+\/blog\/(.+\.md)$/.exec(post.url);
+  if (!m) return null;
+  return `https://github.com/luohy15/y-blog-content/commits/main/${m[1]}`;
+}
+
 export function getPostHref(post: BlogPost, lang?: LanguageCode): string {
   const slug = getSlugFromUrl(post.url);
   const langPrefix = lang && lang !== 'en' ? `/${lang}` : '';
