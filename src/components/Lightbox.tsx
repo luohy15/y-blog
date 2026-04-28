@@ -185,6 +185,7 @@ function Lightbox() {
           maxScale={8}
           limitToBounds={false}
           doubleClick={{ mode: 'reset' }}
+          smooth={false}
           wheel={{ step: 0.05 }}
           onTransform={(_, state) => setTransform(state)}
         >
