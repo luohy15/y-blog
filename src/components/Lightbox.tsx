@@ -4,8 +4,10 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   ReactNode,
+  RefObject,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
@@ -78,9 +80,13 @@ export function ImageGalleryProvider({ images, children }: ImageGalleryProviderP
   );
 }
 
+const INITIAL_TRANSFORM = { scale: 1, positionX: 0, positionY: 0 };
+
 function Lightbox() {
   const { images, currentIndex, isOpen, close, next, prev } = useGallery();
   const [loading, setLoading] = useState(true);
+  const [transform, setTransform] = useState(INITIAL_TRANSFORM);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -109,6 +115,7 @@ function Lightbox() {
   useEffect(() => {
     if (!src) return;
     setLoading(true);
+    setTransform(INITIAL_TRANSFORM);
   }, [src]);
 
   useEffect(() => {
@@ -162,6 +169,7 @@ function Lightbox() {
       )}
 
       <div
+        ref={wrapperRef}
         className="relative flex items-center justify-center"
         onClick={(e) => e.stopPropagation()}
       >
@@ -177,7 +185,8 @@ function Lightbox() {
           maxScale={8}
           limitToBounds={false}
           doubleClick={{ mode: 'reset' }}
-          wheel={{ step: 0.2 }}
+          wheel={{ step: 0.05 }}
+          onTransform={(_, state) => setTransform(state)}
         >
           <TransformComponent
             wrapperClass="!max-w-[95vw] !max-h-[90vh] !overflow-hidden"
@@ -195,6 +204,9 @@ function Lightbox() {
             />
           </TransformComponent>
         </TransformWrapper>
+        {transform.scale > 1.01 && !loading && (
+          <MiniMap src={src} transform={transform} wrapperRef={wrapperRef} />
+        )}
       </div>
 
       {hasMultiple && (
@@ -218,5 +230,49 @@ function Lightbox() {
       )}
     </div>,
     document.body,
+  );
+}
+
+interface MiniMapProps {
+  src: string;
+  transform: { scale: number; positionX: number; positionY: number };
+  wrapperRef: RefObject<HTMLDivElement | null>;
+}
+
+function MiniMap({ src, transform, wrapperRef }: MiniMapProps) {
+  const rect = wrapperRef.current?.getBoundingClientRect();
+  if (!rect || rect.width === 0 || rect.height === 0) return null;
+  const { scale, positionX, positionY } = transform;
+  const W = rect.width;
+  const H = rect.height;
+  const xMin = Math.max(0, Math.min(W, -positionX / scale));
+  const yMin = Math.max(0, Math.min(H, -positionY / scale));
+  const xMax = Math.max(0, Math.min(W, (W - positionX) / scale));
+  const yMax = Math.max(0, Math.min(H, (H - positionY) / scale));
+  const left = (xMin / W) * 100;
+  const top = (yMin / H) * 100;
+  const width = ((xMax - xMin) / W) * 100;
+  const height = ((yMax - yMin) / H) * 100;
+  return (
+    <div
+      className="absolute top-2 left-2 pointer-events-none overflow-hidden rounded-sm border border-white/60 shadow-lg shadow-black/50"
+      style={{ width: 128 }}
+    >
+      <img
+        src={src}
+        alt=""
+        draggable={false}
+        className="block w-full h-auto select-none"
+      />
+      <div
+        className="absolute border border-white bg-white/20"
+        style={{
+          left: `${left}%`,
+          top: `${top}%`,
+          width: `${width}%`,
+          height: `${height}%`,
+        }}
+      />
+    </div>
   );
 }
