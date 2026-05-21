@@ -18,11 +18,13 @@ export async function getBlogPosts(language?: LanguageCode): Promise<BlogPost[]>
   try {
     // Construct URL based on language
     const baseUrl = 'https://cdn.luohy15.com/blog';
-    const url = language && language !== 'en'
+    const indexUrl = language && language !== 'en'
       ? `${baseUrl}/${language}/index.jsonl`
       : `${baseUrl}/index.jsonl`;
+    const url = `${indexUrl}?v=${Date.now()}`;
 
     const response = await fetch(url, {
+      cache: 'no-store',
       headers: {
         'Accept': 'text/plain; charset=utf-8',
       },
