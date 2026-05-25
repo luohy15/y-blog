@@ -4,8 +4,10 @@ import { TocItem } from '@/lib/toc';
 export function useTocNavigation(tocItems: TocItem[]) {
   const [activeId, setActiveId] = useState<string>('');
 
-  // Handle smooth scrolling to section
+  // Handle scrolling to section
   const scrollToSection = (id: string) => {
+    setActiveId(id);
+
     const element = document.getElementById(id);
     const header = document.querySelector('header');
 
@@ -15,8 +17,7 @@ export function useTocNavigation(tocItems: TocItem[]) {
       const offsetPosition = elementPosition - headerHeight - 16;
 
       window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
+        top: offsetPosition
       });
     }
   };
