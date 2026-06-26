@@ -86,6 +86,23 @@ export default function PostPage({ slug = '', lang, showTime = true, showToc = t
     };
   }, [post, lang, slug]);
 
+  // Deep-link: once content has rendered, scroll to the heading matching the
+  // URL hash. ScrollToTop bails when a hash is present, so we handle it here.
+  useEffect(() => {
+    if (loading || !post) return;
+    const hash = window.location.hash;
+    if (!hash) return;
+
+    const id = decodeURIComponent(hash.slice(1));
+    // Wait for layout so scroll-margin-top lands the heading below the header.
+    const raf = requestAnimationFrame(() => {
+      const element = document.getElementById(id);
+      if (element) element.scrollIntoView();
+    });
+
+    return () => cancelAnimationFrame(raf);
+  }, [loading, post, content]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">

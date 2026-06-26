@@ -12,6 +12,19 @@ interface MarkdownProps {
   className?: string;
 }
 
+// Hover anchor link rendered inside id'd headings so users can grab a section URL.
+function AnchorLink({ id }: { id: string }) {
+  return (
+    <a
+      href={`#${id}`}
+      aria-label="Link to this section"
+      className="ml-2 text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity no-underline"
+    >
+      #
+    </a>
+  );
+}
+
 // Custom components for ReactMarkdown
 const markdownComponents: Components = {
   h1: () => {
@@ -23,22 +36,39 @@ const markdownComponents: Components = {
     return (
       <h2
         id={id}
-        className="text-2xl sm:text-3xl font-bold mt-6 mb-3 text-slate-900 dark:text-slate-100"
+        className="group scroll-mt-24 text-2xl sm:text-3xl font-bold mt-6 mb-3 text-slate-900 dark:text-slate-100"
       >
         {children}
+        <AnchorLink id={id} />
       </h2>
     );
   },
-  h3: ({ children }) => (
-    <h3 className="text-xl sm:text-2xl font-bold mt-5 mb-2 text-slate-900 dark:text-slate-100">
-      {children}
-    </h3>
-  ),
-  h4: ({ children }) => (
-    <h4 className="text-lg sm:text-xl font-bold mt-4 mb-2 text-slate-900 dark:text-slate-100">
-      {children}
-    </h4>
-  ),
+  h3: ({ children }) => {
+    const text = children?.toString() || '';
+    const id = generateSlug(text);
+    return (
+      <h3
+        id={id}
+        className="group scroll-mt-24 text-xl sm:text-2xl font-bold mt-5 mb-2 text-slate-900 dark:text-slate-100"
+      >
+        {children}
+        <AnchorLink id={id} />
+      </h3>
+    );
+  },
+  h4: ({ children }) => {
+    const text = children?.toString() || '';
+    const id = generateSlug(text);
+    return (
+      <h4
+        id={id}
+        className="group scroll-mt-24 text-lg sm:text-xl font-bold mt-4 mb-2 text-slate-900 dark:text-slate-100"
+      >
+        {children}
+        <AnchorLink id={id} />
+      </h4>
+    );
+  },
   h5: ({ children }) => (
     <h5 className="text-base sm:text-lg font-bold mt-3 mb-1 text-slate-900 dark:text-slate-100">
       {children}
