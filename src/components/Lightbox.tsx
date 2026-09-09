@@ -145,7 +145,7 @@ function Lightbox() {
       <button
         type="button"
         aria-label="Close"
-        className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+        className="absolute z-10 top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
         onClick={(e) => {
           e.stopPropagation();
           close();
@@ -158,7 +158,7 @@ function Lightbox() {
         <button
           type="button"
           aria-label="Previous image"
-          className="absolute left-2 sm:left-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          className="absolute z-10 left-[max(0.5rem,env(safe-area-inset-left))] sm:left-[max(1rem,env(safe-area-inset-left))] p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             prev();
@@ -214,7 +214,7 @@ function Lightbox() {
         <button
           type="button"
           aria-label="Next image"
-          className="absolute right-2 sm:right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          className="absolute z-10 right-[max(0.5rem,env(safe-area-inset-right))] sm:right-[max(1rem,env(safe-area-inset-right))] p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             next();
@@ -225,7 +225,7 @@ function Lightbox() {
       )}
 
       {hasMultiple && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-white/10 text-white text-sm">
+        <div className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-white/10 text-white text-sm">
           {currentIndex + 1} / {images.length}
         </div>
       )}
