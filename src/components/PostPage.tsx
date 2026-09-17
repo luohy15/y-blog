@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { getBlogPost, formatDate, getPostHref, getDateSegments, getPostHistoryUrl } from '@/lib/blog';
 import { LanguageCode } from '@/lib/language';
 import { getTranslation } from '@/lib/translations';
+import { getTagHref, relatedGroups } from '@/lib/tags';
 import Markdown from '@/components/Markdown';
-import TOCMobile from '@/components/TOCMobile';
 import TOCDesktop from '@/components/TOCDesktop';
+import ArticleNavDesktop from '@/components/ArticleNavDesktop';
+import PostMobileNav from '@/components/PostMobileNav';
 import { extractTocFromMarkdown } from '@/lib/toc';
 import type { BlogPost } from '@/lib/blog';
 import type { TocItem } from '@/lib/toc';
@@ -17,12 +20,31 @@ interface PostPageProps {
   expectedDate?: { yyyy: string; mm: string; dd: string };
 }
 
+const TAG_COLORS = [
+  'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
+  'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+  'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
+  'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
+  'bg-rose-100 text-rose-800 border-rose-200 hover:bg-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800',
+  'bg-cyan-100 text-cyan-800 border-cyan-200 hover:bg-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800',
+];
+
+function tagColorClass(tag: string): string {
+  const hash = tag.split('').reduce((a, b) => {
+    a = ((a << 5) - a) + b.charCodeAt(0);
+    return a & a;
+  }, 0);
+  return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length];
+}
+
 export default function PostPage({ slug = '', lang, showTime = true, showToc = true, expectedDate }: PostPageProps) {
   const [post, setPost] = useState<BlogPost | null>(null);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
   const [content, setContent] = useState<string>('');
   const [tocItems, setTocItems] = useState<TocItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const language: LanguageCode = lang || 'en';
 
   useEffect(() => {
     let cancelled = false;
@@ -51,11 +73,11 @@ export default function PostPage({ slug = '', lang, showTime = true, showToc = t
       }
 
       setPost(result.post);
+      setPosts(result.posts);
       setContent(result.content);
       setTocItems(showToc ? extractTocFromMarkdown(result.content) : []);
       setLoading(false);
 
-      // Update document title
       if (result.post.title) {
         document.title = `${result.post.title} - Huayi Luo`;
       }
@@ -103,6 +125,8 @@ export default function PostPage({ slug = '', lang, showTime = true, showToc = t
     return () => cancelAnimationFrame(raf);
   }, [loading, post, content]);
 
+  const groups = useMemo(() => (post ? relatedGroups(posts, post) : []), [post, posts]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -119,57 +143,37 @@ export default function PostPage({ slug = '', lang, showTime = true, showToc = t
     );
   }
 
+  const visibleToc = showToc ? tocItems : [];
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile TOC */}
-      {showToc && <TOCMobile tocItems={tocItems} />}
+      <PostMobileNav groups={groups} tocItems={visibleToc} language={language} />
 
-      {/* Main content with messages and TOC */}
       <div className="flex justify-center">
-        {/* Table of Contents (Desktop) */}
-        <div className="hidden sm:block sm:w-[20%] h-[calc(50vh)] fixed left-8 top-24 2xl:left-40">
-          {showToc && <TOCDesktop tocItems={tocItems} />}
-        </div>
+        {groups.length > 0 && (
+          <div className="hidden min-[1100px]:block w-56 fixed left-8 top-24 2xl:left-40">
+            <ArticleNavDesktop groups={groups} language={language} />
+          </div>
+        )}
 
-        {/* Messages (centered) */}
         <div className={`flex flex-col px-4 sm:px-0 pb-28 pt-4 w-full sm:w-[50%] 2xl:w-[40%] max-w-[100%] space-y-4`}>
-          {/* Article */}
           <article className="bg-card rounded-lg border shadow-sm p-4 sm:p-6 lg:p-8">
             <header className="mb-6 sm:mb-8 pb-6 border-b border-border">
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4 leading-tight">
                 {post.title}
               </h1>
 
-              {/* Tags */}
               {post.tags && post.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {post.tags.map((tag, index) => {
-                    // Generate consistent colors based on tag content
-                    const colors = [
-                      'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
-                      'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
-                      'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
-                      'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
-                      'bg-rose-100 text-rose-800 border-rose-200 hover:bg-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800',
-                      'bg-cyan-100 text-cyan-800 border-cyan-200 hover:bg-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800',
-                    ];
-
-                    // Simple hash function to consistently assign colors
-                    const hash = tag.split('').reduce((a, b) => {
-                      a = ((a << 5) - a) + b.charCodeAt(0);
-                      return a & a;
-                    }, 0);
-                    const colorClass = colors[Math.abs(hash) % colors.length];
-
-                    return (
-                      <span
-                        key={index}
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium transition-colors border ${colorClass}`}
-                      >
-                        {tag}
-                      </span>
-                    );
-                  })}
+                  {post.tags.map((tag, index) => (
+                    <Link
+                      key={index}
+                      to={getTagHref(tag, language)}
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium transition-colors border break-words min-w-0 ${tagColorClass(tag)}`}
+                    >
+                      {tag}
+                    </Link>
+                  ))}
                 </div>
               )}
 
@@ -220,6 +224,12 @@ export default function PostPage({ slug = '', lang, showTime = true, showToc = t
             </div>
           </article>
         </div>
+
+        {visibleToc.length > 0 && (
+          <div className="hidden min-[1100px]:block w-56 fixed right-8 top-24 2xl:right-40">
+            <TOCDesktop tocItems={visibleToc} language={language} />
+          </div>
+        )}
       </div>
     </div>
   );

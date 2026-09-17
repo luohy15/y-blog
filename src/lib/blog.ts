@@ -1,4 +1,4 @@
-import { LanguageCode } from './language';
+import type { LanguageCode } from './language.ts';
 
 export interface BlogPost {
   title: string;
@@ -11,7 +11,15 @@ export interface BlogPost {
 interface Frontmatter {
   created?: string;
   updated?: string;
-  tags?: string[];
+}
+
+export function applyFrontmatterOverrides(post: BlogPost, frontmatter: Frontmatter | null): BlogPost {
+  return {
+    ...post,
+    create_time: frontmatter?.created || post.create_time,
+    update_time: frontmatter?.updated || post.update_time,
+    tags: post.tags ?? [],
+  };
 }
 
 export async function getBlogPosts(language?: LanguageCode): Promise<BlogPost[]> {
@@ -84,15 +92,6 @@ function parseFrontmatter(content: string): { frontmatter: Frontmatter | null; c
 
         if (key.trim() === 'created' || key.trim() === 'updated') {
           frontmatter[key.trim() as 'created' | 'updated'] = value;
-        } else if (key.trim() === 'tags') {
-          // Parse tags array [tag1, tag2, tag3]
-          const tagsMatch = value.match(/\[(.*?)\]/);
-          if (tagsMatch) {
-            frontmatter.tags = tagsMatch[1]
-              .split(',')
-              .map(tag => tag.trim().replace(/['"]/g, ''))
-              .filter(tag => tag.length > 0);
-          }
         }
       }
     }
@@ -104,7 +103,7 @@ function parseFrontmatter(content: string): { frontmatter: Frontmatter | null; c
   }
 }
 
-export async function getBlogPost(slug: string, language?: LanguageCode): Promise<{ post: BlogPost; content: string } | null> {
+export async function getBlogPost(slug: string, language?: LanguageCode): Promise<{ post: BlogPost; content: string; posts: BlogPost[] } | null> {
   try {
     // Special case for 'about' page - when slug is 'about' or empty
     if (!slug) {
@@ -137,15 +136,7 @@ export async function getBlogPost(slug: string, language?: LanguageCode): Promis
     const rawContent = await response.text();
     const { frontmatter, content } = parseFrontmatter(rawContent);
 
-    // Create updated post with frontmatter data taking priority
-    const updatedPost: BlogPost = {
-      ...post,
-      create_time: frontmatter?.created || post.create_time,
-      update_time: frontmatter?.updated || post.update_time,
-      tags: frontmatter?.tags || []
-    };
-
-    return { post: updatedPost, content };
+    return { post: applyFrontmatterOverrides(post, frontmatter), content, posts };
   } catch (error) {
     console.error('Error fetching blog post:', error);
     return null;

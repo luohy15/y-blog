@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { LanguageProvider } from './contexts/LanguageContext';
 import HtmlLangUpdater from './components/HtmlLangUpdater';
@@ -5,7 +6,16 @@ import ScrollToTop from './components/ScrollToTop';
 import Header from './components/Header';
 import HomePage from './pages/HomePage';
 import WritingPage from './pages/WritingPage';
+import TagsPage from './pages/TagsPage';
 import PostPageRoute from './pages/PostPageRoute';
+import { routeTable, type AppPage } from './lib/routes';
+
+const pages: Record<AppPage, ReactElement> = {
+  home: <HomePage />,
+  writing: <WritingPage />,
+  tags: <TagsPage />,
+  post: <PostPageRoute />,
+};
 
 export default function App() {
   return (
@@ -16,13 +26,9 @@ export default function App() {
         <Header />
         <main className="flex-1 pt-20">
           <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/writing" element={<WritingPage />} />
-            <Route path="/:param" element={<PostPageRoute />} />
-            <Route path="/:param/writing" element={<WritingPage />} />
-            <Route path="/:param/:slug" element={<PostPageRoute />} />
-            <Route path="/:yyyy/:mm/:dd/:slug" element={<PostPageRoute />} />
-            <Route path="/:lang/:yyyy/:mm/:dd/:slug" element={<PostPageRoute />} />
+            {routeTable.map((route) => (
+              <Route key={route.path} path={route.path} element={pages[route.page]} />
+            ))}
           </Routes>
         </main>
       </div>

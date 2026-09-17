@@ -23,6 +23,11 @@ export default function Header() {
       href: addLanguageToPath('/writing', currentLanguage),
       active: cleanPath === '/writing'
     },
+    {
+      name: t.nav.tags,
+      href: addLanguageToPath('/tags', currentLanguage),
+      active: cleanPath === '/tags' || cleanPath.startsWith('/tags/')
+    },
   ];
 
   return (
