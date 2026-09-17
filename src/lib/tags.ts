@@ -46,20 +46,33 @@ export function decodeLegacyEncodedSegment(segment: string): string | null {
   }
 }
 
+const RETIRED_AGENT_TAGS = ['y-agent', 'ai-coding'] as const;
+const CANONICAL_AGENT_TAG = 'ai-agent';
+
+function resolvedLegacyTag(segment: string): string | null {
+  const decoded = decodeLegacyEncodedSegment(segment);
+  const candidate = decoded ?? segment;
+  if ((RETIRED_AGENT_TAGS as readonly string[]).includes(candidate)) {
+    return CANONICAL_AGENT_TAG;
+  }
+  if (decoded != null) return decoded;
+  return null;
+}
+
 export function legacyRedirectTarget(
   segment: string | undefined,
   tags: string[],
   language: LanguageCode,
 ): string | null {
   if (segment == null || segment === '') return null;
-  const decoded = decodeLegacyEncodedSegment(segment);
-  if (decoded == null) return null;
-  if (!tags.includes(decoded)) return null;
-  return getTagHref(decoded, language);
+  const target = resolvedLegacyTag(segment);
+  if (target == null) return null;
+  if (!tags.includes(target)) return null;
+  return getTagHref(target, language);
 }
 
 export function segmentToTag(segment: string): string | null {
-  if (decodeLegacyEncodedSegment(segment) != null) return null;
+  if (resolvedLegacyTag(segment) != null) return null;
   return segment;
 }
 
