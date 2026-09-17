@@ -1,8 +1,10 @@
 import { addLanguageToPath } from './language.ts';
 import type { LanguageCode } from './language.ts';
-import type { BlogPost } from './blog.ts';
+import { formatDate, type BlogPost } from './blog.ts';
+import { getTranslation } from './translations.ts';
 
-const TAG_SEGMENT_PREFIX = 't.';
+const LEGACY_TAG_SEGMENT_PREFIX = 't.';
+const BASE64URL_BODY = /^[A-Za-z0-9_-]+$/;
 
 function utf8ToBytes(value: string): Uint8Array {
   return new TextEncoder().encode(value);
@@ -18,8 +20,6 @@ function bytesToBase64Url(bytes: Uint8Array): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-const BASE64URL_BODY = /^[A-Za-z0-9_-]+$/;
-
 function base64UrlToBytes(body: string): Uint8Array {
   const padded = body + '='.repeat((4 - (body.length % 4)) % 4);
   const binary = atob(padded.replace(/-/g, '+').replace(/_/g, '/'));
@@ -29,20 +29,38 @@ function base64UrlToBytes(body: string): Uint8Array {
 }
 
 export function tagToSegment(tag: string): string {
-  return TAG_SEGMENT_PREFIX + bytesToBase64Url(utf8ToBytes(tag));
+  return tag;
 }
 
-export function segmentToTag(segment: string): string | null {
-  if (!segment.startsWith(TAG_SEGMENT_PREFIX)) return null;
-  const body = segment.slice(TAG_SEGMENT_PREFIX.length);
+export function decodeLegacyEncodedSegment(segment: string): string | null {
+  if (!segment.startsWith(LEGACY_TAG_SEGMENT_PREFIX)) return null;
+  const body = segment.slice(LEGACY_TAG_SEGMENT_PREFIX.length);
   if (!body || !BASE64URL_BODY.test(body)) return null;
   try {
     const tag = bytesToUtf8(base64UrlToBytes(body));
-    if (tagToSegment(tag) !== segment) return null;
+    const expected = LEGACY_TAG_SEGMENT_PREFIX + bytesToBase64Url(utf8ToBytes(tag));
+    if (expected !== segment) return null;
     return tag;
   } catch {
     return null;
   }
+}
+
+export function legacyRedirectTarget(
+  segment: string | undefined,
+  tags: string[],
+  language: LanguageCode,
+): string | null {
+  if (segment == null || segment === '') return null;
+  const decoded = decodeLegacyEncodedSegment(segment);
+  if (decoded == null) return null;
+  if (!tags.includes(decoded)) return null;
+  return getTagHref(decoded, language);
+}
+
+export function segmentToTag(segment: string): string | null {
+  if (decodeLegacyEncodedSegment(segment) != null) return null;
+  return segment;
 }
 
 export function getTagHref(tag: string, language: LanguageCode): string {
@@ -61,6 +79,10 @@ export function collectTags(posts: BlogPost[]): string[] {
     }
   }
   return [...tags].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+}
+
+export function relatedCreatedLabel(createTime: string, language: LanguageCode): string {
+  return `${getTranslation(language, 'common.created')} ${formatDate(createTime, language)}`;
 }
 
 export function articlesForTag(posts: BlogPost[], tag: string): BlogPost[] {

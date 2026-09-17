@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { getBlogPosts, formatDate, getPostHref, type BlogPost } from '@/lib/blog';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslation } from '@/lib/translations';
-import { addLanguageToPath, type LanguageCode } from '@/lib/language';
+import { addLanguageToPath, getLanguageFromPath, type LanguageCode } from '@/lib/language';
 import {
   articlesForTag,
   collectTags,
   getTagHref,
   getTagsIndexHref,
+  legacyRedirectTarget,
   resolveSelectedTag,
 } from '@/lib/tags';
 
@@ -65,7 +65,8 @@ function ArticleRows({ posts, language }: { posts: BlogPost[]; language: Languag
 
 export default function TagsPage() {
   const { tagSegment } = useParams<{ tagSegment?: string }>();
-  const { currentLanguage } = useLanguage();
+  const location = useLocation();
+  const urlLanguage = getLanguageFromPath(location.pathname);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -78,7 +79,7 @@ export default function TagsPage() {
 
     async function fetchPosts() {
       setLoading(true);
-      const fetched = await getBlogPosts(currentLanguage !== 'en' ? currentLanguage : undefined);
+      const fetched = await getBlogPosts(urlLanguage !== 'en' ? urlLanguage : undefined);
       if (!cancelled) {
         setPosts(fetched);
         setLoading(false);
@@ -89,11 +90,12 @@ export default function TagsPage() {
     return () => {
       cancelled = true;
     };
-  }, [currentLanguage]);
+  }, [urlLanguage]);
 
   const tags = useMemo(() => collectTags(posts), [posts]);
   const selected = useMemo(() => resolveSelectedTag(tags, tagSegment), [tags, tagSegment]);
   const selectedArticles = selected.tag ? articlesForTag(posts, selected.tag) : [];
+  const redirectTo = !loading ? legacyRedirectTarget(tagSegment, tags, urlLanguage) : null;
 
   if (loading) {
     return (
@@ -103,17 +105,21 @@ export default function TagsPage() {
     );
   }
 
-  const writingHref = addLanguageToPath('/writing', currentLanguage);
+  if (redirectTo != null) {
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  const writingHref = addLanguageToPath('/writing', urlLanguage);
 
   if (tags.length === 0) {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-4xl mx-auto px-6 py-8 lg:py-12">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-8">{getTranslation(currentLanguage, 'tags.title')}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-8">{getTranslation(urlLanguage, 'tags.title')}</h1>
           <div className="text-center py-14 text-muted-foreground">
-            <p className="mb-3">{getTranslation(currentLanguage, 'tags.empty')}</p>
+            <p className="mb-3">{getTranslation(urlLanguage, 'tags.empty')}</p>
             <Link to={writingHref} className="text-foreground underline underline-offset-4">
-              {getTranslation(currentLanguage, 'tags.browseWriting')} →
+              {getTranslation(urlLanguage, 'tags.browseWriting')} →
             </Link>
           </div>
         </div>
@@ -122,13 +128,13 @@ export default function TagsPage() {
   }
 
   const picker = (
-    <nav aria-label={getTranslation(currentLanguage, 'tags.chooseTag')}>
+    <nav aria-label={getTranslation(urlLanguage, 'tags.chooseTag')}>
       {tags.map((tag) => (
         <TagChoice
           key={tag}
           tag={tag}
           selected={selected.tag === tag}
-          language={currentLanguage}
+          language={urlLanguage}
         />
       ))}
     </nav>
@@ -137,7 +143,7 @@ export default function TagsPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-6 py-8 lg:py-12">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-8">{getTranslation(currentLanguage, 'tags.title')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-8">{getTranslation(urlLanguage, 'tags.title')}</h1>
 
         <details key={selected.tag} className="md:hidden mb-6 border border-border rounded-lg bg-card">
           <summary className="flex justify-between items-center gap-3 min-h-12 px-4 py-3 cursor-pointer font-semibold break-words">
@@ -153,8 +159,8 @@ export default function TagsPage() {
             className="min-w-0"
             aria-label={
               selected.tag
-                ? `${getTranslation(currentLanguage, 'tags.title')} ${selected.tag}`
-                : getTranslation(currentLanguage, 'tags.title')
+                ? `${getTranslation(urlLanguage, 'tags.title')} ${selected.tag}`
+                : getTranslation(urlLanguage, 'tags.title')
             }
           >
             {selected.tag && (
@@ -162,13 +168,13 @@ export default function TagsPage() {
             )}
             {selectedArticles.length === 0 ? (
               <div className="text-muted-foreground">
-                <p className="mb-3">{getTranslation(currentLanguage, 'tags.emptyTag')}</p>
-                <Link to={getTagsIndexHref(currentLanguage)} className="text-foreground underline underline-offset-4">
-                  {getTranslation(currentLanguage, 'tags.allTags')}
+                <p className="mb-3">{getTranslation(urlLanguage, 'tags.emptyTag')}</p>
+                <Link to={getTagsIndexHref(urlLanguage)} className="text-foreground underline underline-offset-4">
+                  {getTranslation(urlLanguage, 'tags.allTags')}
                 </Link>
               </div>
             ) : (
-              <ArticleRows posts={selectedArticles} language={currentLanguage} />
+              <ArticleRows posts={selectedArticles} language={urlLanguage} />
             )}
           </section>
         </div>

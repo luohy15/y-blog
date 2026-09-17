@@ -120,3 +120,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Related-articles rail/panel only: hide the scrollbar, keep overflow scrolling. */
+.related-scroll {
+  scrollbar-width: none;
+}
+.related-scroll::-webkit-scrollbar {
+  display: none;
+}
