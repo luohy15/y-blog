@@ -111,7 +111,7 @@ export default function PostMobileNav({ groups, tocItems, language }: PostMobile
                   <ChevronDown className="w-4 h-4" />
                 </button>
               </div>
-              <div className="related-scroll overflow-y-auto overscroll-contain">
+              <div className="rail-scroll overflow-y-auto overscroll-contain">
                 <RelatedList groups={groups} language={language} onNavigate={() => closePanel(false)} />
               </div>
             </section>
@@ -154,7 +154,7 @@ export default function PostMobileNav({ groups, tocItems, language }: PostMobile
                   <ChevronDown className="w-4 h-4" />
                 </button>
               </div>
-              <div className="overflow-y-auto overscroll-contain">
+              <div className="rail-scroll overflow-y-auto overscroll-contain">
                 <TocContent
                   tocItems={tocItems}
                   activeId={activeId}

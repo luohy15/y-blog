@@ -121,10 +121,10 @@
   }
 }
 
-/* Related-articles rail/panel only: hide the scrollbar, keep overflow scrolling. */
-.related-scroll {
+/* Related-articles and TOC rails/panels: hide the scrollbar, keep overflow scrolling. */
+.rail-scroll {
   scrollbar-width: none;
 }
-.related-scroll::-webkit-scrollbar {
+.rail-scroll::-webkit-scrollbar {
   display: none;
 }
