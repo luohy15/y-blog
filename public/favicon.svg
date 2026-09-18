@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="226 70 580 580" width="580" height="580">
+  <!-- luohy15 favicon: head crop of assets/images/avatar-3605-v9c.svg, no font dependency. -->
+  <style>
+    .ink { stroke: #1f1f1f; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+    .skin { fill: #f6cda6; }
+    .dark { fill: #1f1f1f; }
+    .none { fill: none; }
+  </style>
+
+  <rect x="226" y="70" width="580" height="580" fill="#f7f1e6"/>
+
+  <!-- shirt -->
+  <path class="dark ink" d="M50 1024 C80 860 250 740 440 690 C470 745 560 745 590 690 C780 740 950 860 980 1024 Z"/>
+
+  <!-- neck -->
+  <path class="skin ink" d="M440 600 L440 695 C470 747 560 747 590 695 L590 600 Z"/>
+
+  <!-- hand: fist then thumb -->
+  <path class="skin ink" d="M645 832 L760 832 C818 832 818 874 760 874 C816 874 816 916 760 916 C812 916 812 958 760 958 C806 958 806 1000 760 1000 L690 1000 C655 1000 645 965 645 900 Z"/>
+  <path class="ink none" d="M690 874 L760 874 M690 916 L760 916 M690 958 L760 958"/>
+  <path class="skin ink" d="M700 834 C700 790 722 742 746 706 C762 690 792 700 786 732 C780 770 774 802 774 834 Z"/>
+
+  <!-- ear -->
+  <ellipse class="skin ink" cx="312" cy="450" rx="22" ry="34"/>
+
+  <!-- head -->
+  <path class="skin ink" d="M310 400 C310 250 420 200 510 200 C620 200 712 260 706 400 C700 505 660 600 565 640 C525 655 470 648 430 612 C360 562 310 500 310 400 Z"/>
+
+  <!-- hair -->
+  <path class="dark ink" d="M280 380 C262 250 340 150 500 140 L520 98 L545 142 L590 112 L600 150 C660 150 745 210 742 330 C746 360 732 380 726 400 C700 372 690 322 652 302 C612 332 560 322 532 302 C500 332 440 342 402 316 C370 346 340 362 322 396 C300 402 286 396 280 380 Z"/>
+
+  <!-- eyebrows -->
+  <path class="ink none" style="stroke-width:7" d="M410 376 Q450 356 490 372 M575 368 Q615 348 655 365"/>
+
+  <!-- eyes -->
+  <path class="ink" fill="#ffffff" d="M415 420 Q450 396 485 420 Q450 440 415 420 Z M580 412 Q615 388 650 412 Q615 432 580 412 Z"/>
+  <circle cx="452" cy="420" r="11" fill="#4a2c17"/>
+  <circle cx="617" cy="412" r="11" fill="#4a2c17"/>
+  <circle cx="456" cy="416" r="3" fill="#ffffff"/>
+  <circle cx="621" cy="408" r="3" fill="#ffffff"/>
+
+  <!-- glasses -->
+  <g class="ink none" style="stroke-width:5">
+    <circle cx="452" cy="425" r="60"/>
+    <circle cx="617" cy="417" r="60"/>
+    <path d="M512 422 Q535 405 557 415 M392 428 L332 440"/>
+  </g>
+
+  <!-- nose and mouth -->
+  <path class="ink none" d="M545 470 Q560 505 540 515"/>
+  <path class="ink none" d="M525 570 Q560 596 600 566"/>
+
+</svg>
