@@ -35,9 +35,11 @@ export default function Header() {
       <div className="max-w-4xl mx-auto px-4 py-4 flex items-center space-x-8">
         {/* Avatar */}
         <div className="flex items-center">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgb(76, 154, 231)' }}>
-            <span className="text-white font-semibold text-sm">Y</span>
-          </div>
+          <img
+            src="/favicon.svg"
+            alt="Huayi Luo"
+            className="w-10 h-10 rounded-full"
+          />
         </div>
 
         {/* Navigation */}
