@@ -35,11 +35,17 @@ export default function Header() {
       <div className="max-w-4xl mx-auto px-4 py-4 flex items-center space-x-8">
         {/* Avatar */}
         <div className="flex items-center">
-          <img
-            src="/favicon.svg"
-            alt="Huayi Luo"
-            className="w-10 h-10 rounded-full"
-          />
+          <Link
+            to={addLanguageToPath('/', currentLanguage)}
+            aria-label={t.nav.home}
+            className="flex items-center"
+          >
+            <img
+              src="/favicon.svg"
+              alt=""
+              className="w-10 h-10 rounded-full"
+            />
+          </Link>
         </div>
 
         {/* Navigation */}

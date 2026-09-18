@@ -3,6 +3,7 @@ import type { LanguageCode } from './language.ts';
 export const translations = {
   en: {
     nav: {
+      home: 'Home',
       about: 'About',
       writing: 'Writing',
       tags: 'Tags',
@@ -30,6 +31,7 @@ export const translations = {
   },
   ja: {
     nav: {
+      home: 'ホーム',
       about: 'アバウト',
       writing: 'ライティング',
       tags: 'タグ',
@@ -57,6 +59,7 @@ export const translations = {
   },
   zhs: {
     nav: {
+      home: '首页',
       about: '关于',
       writing: '写作',
       tags: '标签',
@@ -84,6 +87,7 @@ export const translations = {
   },
   zht: {
     nav: {
+      home: '首頁',
       about: '關於',
       writing: '寫作',
       tags: '標籤',
