@@ -22,6 +22,10 @@ export function applyFrontmatterOverrides(post: BlogPost, frontmatter: Frontmatt
   };
 }
 
+export function getPostContentUrl(post: BlogPost): string {
+  return `${post.url}?v=${encodeURIComponent(post.update_time)}`;
+}
+
 export async function getBlogPosts(language?: LanguageCode): Promise<BlogPost[]> {
   try {
     // Construct URL based on language
@@ -123,7 +127,7 @@ export async function getBlogPost(slug: string, language?: LanguageCode): Promis
     }
 
     // Fetch the markdown content
-    const response = await fetch(post.url, {
+    const response = await fetch(getPostContentUrl(post), {
       headers: {
         'Accept': 'text/plain; charset=utf-8',
       },
