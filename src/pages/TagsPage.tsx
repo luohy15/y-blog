@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import { getBlogPosts, formatDate, getPostHref, type BlogPost } from '@/lib/blog';
 import { getTranslation } from '@/lib/translations';
@@ -11,6 +11,25 @@ import {
   legacyRedirectTarget,
   resolveSelectedTag,
 } from '@/lib/tags';
+
+function TagsPageFrame({ language, children }: { language: LanguageCode; children: ReactNode }) {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="flex justify-center">
+        <div className="flex flex-col px-4 sm:px-0 pb-28 pt-4 w-full sm:w-[50%] 2xl:w-[40%] max-w-[100%] space-y-4">
+          <article className="bg-card rounded-lg border shadow-sm p-4 sm:p-6 lg:p-8">
+            <header className="mb-6 sm:mb-8 pb-6 border-b border-border">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4 leading-tight">
+                {getTranslation(language, 'tags.title')}
+              </h1>
+            </header>
+            {children}
+          </article>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function TagChoice({
   tag,
@@ -25,10 +44,10 @@ function TagChoice({
     <Link
       to={getTagHref(tag, language)}
       aria-current={selected ? 'page' : undefined}
-      className={`flex items-center justify-between gap-2 min-h-11 px-3 py-2.5 mb-1 rounded-md break-words ${
+      className={`flex items-center justify-between gap-2 min-h-11 px-3 py-2.5 mb-1 rounded-md break-words md:mb-0 md:min-h-0 md:max-w-full md:rounded-full md:py-1.5 md:text-sm ${
         selected
           ? 'bg-blue-100 text-blue-900 dark:bg-blue-900/30 dark:text-blue-300 font-semibold'
-          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+          : 'text-slate-600 dark:text-slate-300 md:bg-slate-100 md:dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 md:hover:bg-slate-200 md:dark:hover:bg-slate-700'
       }`}
     >
       <span className="min-w-0">{tag}</span>
@@ -113,22 +132,19 @@ export default function TagsPage() {
 
   if (tags.length === 0) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-4xl mx-auto px-6 py-8 lg:py-12">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-8">{getTranslation(urlLanguage, 'tags.title')}</h1>
-          <div className="text-center py-14 text-muted-foreground">
-            <p className="mb-3">{getTranslation(urlLanguage, 'tags.empty')}</p>
-            <Link to={writingHref} className="text-foreground underline underline-offset-4">
-              {getTranslation(urlLanguage, 'tags.browseWriting')} →
-            </Link>
-          </div>
+      <TagsPageFrame language={urlLanguage}>
+        <div className="text-center py-14 text-muted-foreground">
+          <p className="mb-3">{getTranslation(urlLanguage, 'tags.empty')}</p>
+          <Link to={writingHref} className="text-foreground underline underline-offset-4">
+            {getTranslation(urlLanguage, 'tags.browseWriting')} →
+          </Link>
         </div>
-      </div>
+      </TagsPageFrame>
     );
   }
 
   const picker = (
-    <nav aria-label={getTranslation(urlLanguage, 'tags.chooseTag')}>
+    <nav className="md:flex md:flex-wrap md:gap-2" aria-label={getTranslation(urlLanguage, 'tags.chooseTag')}>
       {tags.map((tag) => (
         <TagChoice
           key={tag}
@@ -141,44 +157,38 @@ export default function TagsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-6 py-8 lg:py-12">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-8">{getTranslation(urlLanguage, 'tags.title')}</h1>
+    <TagsPageFrame language={urlLanguage}>
+      <details key={selected.tag} className="md:hidden mb-6 border border-border rounded-lg bg-card">
+        <summary className="flex justify-between items-center gap-3 min-h-12 px-4 py-3 cursor-pointer font-semibold break-words">
+          <span>{selected.tag}</span>
+          <span aria-hidden="true">⌄</span>
+        </summary>
+        <div className="px-2 pb-2 max-h-[230px] overflow-y-auto">{picker}</div>
+      </details>
 
-        <details key={selected.tag} className="md:hidden mb-6 border border-border rounded-lg bg-card">
-          <summary className="flex justify-between items-center gap-3 min-h-12 px-4 py-3 cursor-pointer font-semibold break-words">
-            <span>{selected.tag}</span>
-            <span aria-hidden="true">⌄</span>
-          </summary>
-          <div className="px-2 pb-2 max-h-[230px] overflow-y-auto">{picker}</div>
-        </details>
-
-        <div className="md:grid md:grid-cols-[224px_minmax(0,1fr)] md:gap-8">
-          <div className="hidden md:block border-r border-border pr-5">{picker}</div>
-          <section
-            className="min-w-0"
-            aria-label={
-              selected.tag
-                ? `${getTranslation(urlLanguage, 'tags.title')} ${selected.tag}`
-                : getTranslation(urlLanguage, 'tags.title')
-            }
-          >
-            {selected.tag && (
-              <h2 className="text-xl sm:text-2xl font-bold mb-5 break-words">{selected.tag}</h2>
-            )}
-            {selectedArticles.length === 0 ? (
-              <div className="text-muted-foreground">
-                <p className="mb-3">{getTranslation(urlLanguage, 'tags.emptyTag')}</p>
-                <Link to={getTagsIndexHref(urlLanguage)} className="text-foreground underline underline-offset-4">
-                  {getTranslation(urlLanguage, 'tags.allTags')}
-                </Link>
-              </div>
-            ) : (
-              <ArticleRows posts={selectedArticles} language={urlLanguage} />
-            )}
-          </section>
-        </div>
-      </div>
-    </div>
+      <div className="hidden md:block mb-8">{picker}</div>
+      <section
+        className="min-w-0"
+        aria-label={
+          selected.tag
+            ? `${getTranslation(urlLanguage, 'tags.title')} ${selected.tag}`
+            : getTranslation(urlLanguage, 'tags.title')
+        }
+      >
+        {selected.tag && (
+          <h2 className="text-xl sm:text-2xl font-bold mb-5 break-words">{selected.tag}</h2>
+        )}
+        {selectedArticles.length === 0 ? (
+          <div className="text-muted-foreground">
+            <p className="mb-3">{getTranslation(urlLanguage, 'tags.emptyTag')}</p>
+            <Link to={getTagsIndexHref(urlLanguage)} className="text-foreground underline underline-offset-4">
+              {getTranslation(urlLanguage, 'tags.allTags')}
+            </Link>
+          </div>
+        ) : (
+          <ArticleRows posts={selectedArticles} language={urlLanguage} />
+        )}
+      </section>
+    </TagsPageFrame>
   );
 }
