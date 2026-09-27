@@ -1,6 +1,11 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 import rehypeRaw from 'rehype-raw';
+import rehypeKatex from 'rehype-katex';
+import type { Element, Root } from 'hast';
+import { visit } from 'unist-util-visit';
+import 'katex/dist/katex.min.css';
 import { Components } from 'react-markdown';
 import { useMemo } from 'react';
 import { generateSlug } from '@/lib/toc';
@@ -268,6 +273,23 @@ function parseShortcodes(content: string): string {
   return processedContent;
 }
 
+// KaTeX ignores \newline at the top level of display math (it only emits a
+// MathML hint, so the formula stays on one line). The math posts use \newline
+// to stack derivation steps, so wrap each parsed display-math node in aligned,
+// where \\ is a real line break. Runs on the hast node, not the raw source, so
+// code fences and other $$ literals are left alone. Inline math is untouched.
+function rehypeDisplayLineBreaks() {
+  return (tree: Root) => {
+    visit(tree, 'element', (element: Element) => {
+      const classes = element.properties?.className;
+      if (!Array.isArray(classes) || !classes.includes('math-display')) return;
+      const child = element.children[0];
+      if (!child || child.type !== 'text' || !child.value.includes('\\newline')) return;
+      child.value = `\\begin{aligned}\n${child.value.replace(/\\newline/g, '\\\\')}\n\\end{aligned}`;
+    });
+  };
+}
+
 export default function Markdown({ content, className = '' }: MarkdownProps) {
   // Preprocess content to handle Hugo shortcodes
   const processedContent = parseShortcodes(content);
@@ -287,8 +309,8 @@ export default function Markdown({ content, className = '' }: MarkdownProps) {
     <div className={`prose prose-slate max-w-none ${className}`}>
       <ImageGalleryProvider images={images}>
         <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          rehypePlugins={[rehypeRaw]}
+          remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
+          rehypePlugins={[rehypeRaw, rehypeDisplayLineBreaks, rehypeKatex]}
           components={markdownComponents}
         >
           {processedContent}
