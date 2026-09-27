@@ -4,12 +4,6 @@ on:
   push:
     branches:
       - main
-  repository_dispatch:
-    types: [deploy]
-
-concurrency:
-  group: deploy
-  cancel-in-progress: false
 
 permissions:
   id-token: write
@@ -22,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '20'
       - run: npm ci
       - name: Parse config
         run: |

@@ -8,7 +8,7 @@ export interface BlogPost {
   tags?: string[];
 }
 
-export interface Frontmatter {
+interface Frontmatter {
   created?: string;
   updated?: string;
 }
@@ -26,63 +26,51 @@ export function getPostContentUrl(post: BlogPost): string {
   return `${post.url}?v=${encodeURIComponent(post.update_time)}`;
 }
 
-/**
- * Fetches and parses the post index for a language, throwing on a
- * non-OK response, a network error, or malformed JSON lines that leave zero
- * parseable posts. Callers that need to fail loudly on index-fetch trouble
- * (e.g. the build-time Markdown generator) should call this directly instead
- * of `getBlogPosts`, which intentionally swallows all of these for the
- * browser SPA.
- */
-export async function fetchBlogPostsOrThrow(language?: LanguageCode): Promise<BlogPost[]> {
-  // Construct URL based on language
-  const baseUrl = 'https://cdn.luohy15.com/blog';
-  const indexUrl = language && language !== 'en'
-    ? `${baseUrl}/${language}/index.jsonl`
-    : `${baseUrl}/index.jsonl`;
-  const url = `${indexUrl}?v=${Date.now()}`;
-
-  const response = await fetch(url, {
-    cache: 'no-store',
-    headers: {
-      'Accept': 'text/plain; charset=utf-8',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch blog posts from ${url}: HTTP ${response.status}`);
-  }
-
-  const jsonlText = await response.text();
-  const posts: BlogPost[] = [];
-
-  // Parse JSONL format (each line is a separate JSON object)
-  const lines = jsonlText.trim().split('\n');
-  for (const line of lines) {
-    if (line.trim()) {
-      try {
-        const post = JSON.parse(line);
-        posts.push(post);
-      } catch (error) {
-        console.error('Error parsing line:', line, error);
-      }
-    }
-  }
-
-  // Sort posts by creation date (newest first)
-  return posts.sort((a, b) => new Date(b.create_time).getTime() - new Date(a.create_time).getTime());
-}
-
 export async function getBlogPosts(language?: LanguageCode): Promise<BlogPost[]> {
   try {
-    return await fetchBlogPostsOrThrow(language);
+    // Construct URL based on language
+    const baseUrl = 'https://cdn.luohy15.com/blog';
+    const indexUrl = language && language !== 'en'
+      ? `${baseUrl}/${language}/index.jsonl`
+      : `${baseUrl}/index.jsonl`;
+    const url = `${indexUrl}?v=${Date.now()}`;
+
+    const response = await fetch(url, {
+      cache: 'no-store',
+      headers: {
+        'Accept': 'text/plain; charset=utf-8',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch blog posts');
+    }
+
+    const jsonlText = await response.text();
+    const posts: BlogPost[] = [];
+
+    // Parse JSONL format (each line is a separate JSON object)
+    const lines = jsonlText.trim().split('\n');
+    for (const line of lines) {
+      if (line.trim()) {
+        try {
+          const post = JSON.parse(line);
+          posts.push(post);
+        } catch (error) {
+          console.error('Error parsing line:', line, error);
+        }
+      }
+    }
+
+    // Sort posts by creation date (newest first)
+    return posts.sort((a, b) => new Date(b.create_time).getTime() - new Date(a.create_time).getTime());
   } catch (error) {
     console.error('Error fetching blog posts:', error);
     return [];
   }
 }
 
-export function parseFrontmatter(content: string): { frontmatter: Frontmatter | null; content: string } {
+function parseFrontmatter(content: string): { frontmatter: Frontmatter | null; content: string } {
   const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
   const match = content.match(frontmatterRegex);
 

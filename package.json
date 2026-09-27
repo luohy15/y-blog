@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/fetch-redirects.js && tsc && vite build && node --experimental-strip-types scripts/generate-markdown.ts",
+    "build": "node scripts/fetch-redirects.js && tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

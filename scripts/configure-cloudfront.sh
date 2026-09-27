@@ -1,20 +1,31 @@
 #!/bin/bash
 set -euo pipefail
 
-# Configure CloudFront for the agent-Markdown feature:
-#  - create-or-update the `spa-rewrite` CloudFront Function (viewer-request,
-#    cloudfront-js-2.0, see cloudfront/spa-rewrite.js) that lets human SPA
-#    routes fall through to /index.html while leaving real static assets
-#    (including the generated Markdown twins and llms.txt) untouched, and
-#    publish it to LIVE.
-#  - associate that function with the default cache behavior and change
-#    CustomErrorResponses so a missing path from the S3 origin (403/404)
-#    serves /404.md with a real HTTP 404, instead of the old /index.html 200
-#    SPA-fallback trick that the function now makes unnecessary.
+# Configure CloudFront for the agent-Markdown feature (rev 3: CDN-published
+# navigation + static routing; see pages/plan-3710-agent-markdown.md):
 #
-# Both the function association and the CustomErrorResponses change are
-# applied in a single update-distribution call so the distribution never sits
-# in a state where the 404 behavior and the routing function disagree.
+#  - add the content bucket's website endpoint as a second origin, with
+#    OriginPath "/blog" (so `/boston-2026.md` maps to the content bucket's
+#    `blog/boston-2026.md` key with no rewriting), CachingDisabled (the
+#    content pipeline already stamps freshness metadata, and luohy15.com must
+#    never itself cache stale content).
+#  - add two cache behaviors targeting that origin: path pattern `*.md` and
+#    the exact path `/llms.txt`.
+#  - create-or-update the `site-router` CloudFront Function (viewer-request,
+#    cloudfront-js-2.0, see cloudfront/site-router.js) and associate it with
+#    the default behavior (SPA fallback for human routes) and both new
+#    behaviors (home/dated/retired-tag routing for `.md` requests; see the
+#    function file's own header for the exact rules), and publish it to LIVE.
+#  - remove CustomErrorResponses entirely (Quantity 0): once the function
+#    guarantees every extensionless human route already resolves to
+#    /index.html before the origin sees it, the old distribution-wide
+#    403/404 -> /index.html 200 override is not just unnecessary, it actively
+#    breaks the Markdown feature's 404 contract (story 23) by turning a
+#    missing `.md` object into a 200 SPA response.
+#
+# All of the above is applied in a single update-distribution call, so the
+# distribution never sits in a state where the origins/behaviors and the
+# routing function disagree with the error-response configuration.
 #
 # Idempotent: recomputes the desired state and only calls
 # create/update/publish-function (compared against the function's current
@@ -22,26 +33,26 @@ set -euo pipefail
 # update-distribution when something actually differs from the fetched
 # current state.
 #
-# Required env: CLOUDFRONT_DISTRIBUTION_ID
-# Optional env: AWS_PROFILE, CLOUDFRONT_FUNCTION_NAME (default: spa-rewrite)
+# Required env: CLOUDFRONT_DISTRIBUTION_ID, CONTENT_ORIGIN_DOMAIN (the
+#   content bucket's S3 website endpoint, e.g.
+#   y-blog-content-695860013558.s3-website-us-east-1.amazonaws.com --
+#   verified read-only against this account's actual bucket on 2026-09-27;
+#   not hard-coded here since it is account-specific infrastructure data, not
+#   feature logic)
+# Optional env: AWS_PROFILE, CLOUDFRONT_FUNCTION_NAME (default: site-router)
 #
 # --- Rollback (documentation only; not implemented here, not authorized to run) ---
-# This script does not perform rollback. Reverting the CustomErrorResponses
-# change alone is not sufficient: as long as this function stays associated,
-# routes with no matching S3 object are 200-served /404.md by the function's
-# own /index.html-less design fully relying on the *new* error-response
-# semantics (ResponseCode 404). If a rollback is ever authorized, both of the
-# following must land together, in one update-distribution call, the same way
-# the forward change did:
-#   1. CustomErrorResponses back to the pre-feature config: 403 and 404 both
-#      -> ResponsePagePath "/index.html", ResponseCode "200".
+# If a rollback is ever authorized, all of the following must land together,
+# in one update-distribution call, the same way the forward change did:
+#   1. Remove the content origin and its two cache behaviors (`*.md`,
+#      `/llms.txt`).
 #   2. DefaultCacheBehavior.FunctionAssociations back to empty (Quantity 0,
-#      Items []) to disassociate the spa-rewrite function — leaving it
-#      associated with the reverted 200/index.html error responses would
-#      still work by accident (unmatched routes still reach /index.html via
-#      the SPA-shell branch of the function), but it leaves an unused
-#      dependency on a function whose only reason to exist was this feature.
-# The CloudFront Function resource itself (spa-rewrite) can be left in place
+#      Items []) to disassociate the site-router function from the default
+#      behavior (it has no cache behavior left to run on for the `.md` /
+#      `llms.txt` case once step 1 removes those).
+#   3. CustomErrorResponses back to the pre-feature config: 403 and 404 both
+#      -> ResponsePagePath "/index.html", ResponseCode "200".
+# The CloudFront Function resource itself (site-router) can be left in place
 # (DEVELOPMENT/LIVE) after disassociation; it does nothing while unassociated.
 
 if [ -z "${CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
@@ -49,9 +60,14 @@ if [ -z "${CLOUDFRONT_DISTRIBUTION_ID:-}" ]; then
     exit 1
 fi
 
-FUNCTION_NAME="${CLOUDFRONT_FUNCTION_NAME:-spa-rewrite}"
+if [ -z "${CONTENT_ORIGIN_DOMAIN:-}" ]; then
+    echo "Error: CONTENT_ORIGIN_DOMAIN is not set (content bucket S3 website endpoint)" >&2
+    exit 1
+fi
+
+FUNCTION_NAME="${CLOUDFRONT_FUNCTION_NAME:-site-router}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FUNCTION_CODE_PATH="$SCRIPT_DIR/cloudfront/spa-rewrite.js"
+FUNCTION_CODE_PATH="$SCRIPT_DIR/cloudfront/site-router.js"
 
 if [ ! -f "$FUNCTION_CODE_PATH" ]; then
     echo "Error: $FUNCTION_CODE_PATH not found" >&2
@@ -66,12 +82,12 @@ fi
 WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
 
-FUNCTION_CONFIG='{"Comment": "SPA route fallback + Markdown twin passthrough for luohy15.com", "Runtime": "cloudfront-js-2.0"}'
+FUNCTION_CONFIG='{"Comment": "SPA fallback + Markdown/llms.txt routing for luohy15.com", "Runtime": "cloudfront-js-2.0"}'
 
 # --- 1. Create-or-update the CloudFront Function, publish DEVELOPMENT -> LIVE ---
 # Compared against LIVE (what actually serves traffic), not DEVELOPMENT, so
 # create/update/publish are all skipped once the live function already
-# matches the desired code — publish-function is not called unconditionally.
+# matches the desired code -- publish-function is not called unconditionally.
 
 FUNCTION_ARN=""
 LIVE_CODE_MATCHES=false
@@ -143,7 +159,8 @@ fi
 
 echo "CloudFront function live: $FUNCTION_ARN"
 
-# --- 2. Associate the function + set CustomErrorResponses, in one update-distribution call ---
+# --- 2. Add the content origin + two behaviors, associate the function, and ---
+# --- remove CustomErrorResponses, in one update-distribution call.         ---
 
 CURRENT="$WORK_DIR/current-distribution.json"
 NEW_CONFIG="$WORK_DIR/new-distribution-config.json"
@@ -156,43 +173,77 @@ aws cloudfront get-distribution-config \
 
 DIST_ETAG=$(jq -r '.ETag' "$CURRENT")
 
-DESIRED_ERROR_ITEMS='[
+CONTENT_ORIGIN_ID="ContentOrigin"
+# AWS managed "CachingDisabled" cache policy (TTL 0); a stable, publicly
+# documented ID, not account-specific -- see AWS docs "Managed cache
+# policies".
+CACHING_DISABLED_POLICY_ID="4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+
+DESIRED_CONTENT_ORIGIN=$(jq -cn --arg id "$CONTENT_ORIGIN_ID" --arg domain "$CONTENT_ORIGIN_DOMAIN" '
     {
-        "ErrorCode": 403,
-        "ResponsePagePath": "/404.md",
-        "ResponseCode": "404",
-        "ErrorCachingMinTTL": 0
-    },
-    {
-        "ErrorCode": 404,
-        "ResponsePagePath": "/404.md",
-        "ResponseCode": "404",
-        "ErrorCachingMinTTL": 0
+        Id: $id,
+        DomainName: $domain,
+        OriginPath: "/blog",
+        CustomHeaders: { Quantity: 0 },
+        CustomOriginConfig: {
+            HTTPPort: 80,
+            HTTPSPort: 443,
+            OriginProtocolPolicy: "http-only",
+            OriginSslProtocols: { Quantity: 2, Items: ["SSLv3", "TLSv1"] },
+            OriginReadTimeout: 30,
+            OriginKeepaliveTimeout: 5
+        },
+        ConnectionAttempts: 3,
+        ConnectionTimeout: 10,
+        OriginShield: { Enabled: false },
+        OriginAccessControlId: ""
     }
-]'
-DESIRED_ERROR_SORTED=$(echo "$DESIRED_ERROR_ITEMS" | jq -c 'sort_by(.ErrorCode)')
-CURRENT_ERROR_ITEMS=$(jq -c '.DistributionConfig.CustomErrorResponses.Items // [] | sort_by(.ErrorCode)' "$CURRENT")
+')
 
-DESIRED_FUNCTION_ASSOCIATIONS=$(jq -cn --arg arn "$FUNCTION_ARN" '[{"FunctionARN": $arn, "EventType": "viewer-request"}]')
-CURRENT_FUNCTION_ASSOCIATIONS=$(jq -c '.DistributionConfig.DefaultCacheBehavior.FunctionAssociations.Items // []' "$CURRENT")
+DESIRED_FUNCTION_ASSOCIATIONS=$(jq -cn --arg arn "$FUNCTION_ARN" '
+    { Quantity: 1, Items: [{ FunctionARN: $arn, EventType: "viewer-request" }] }
+')
 
-if [ "$CURRENT_ERROR_ITEMS" = "$DESIRED_ERROR_SORTED" ] && [ "$CURRENT_FUNCTION_ASSOCIATIONS" = "$DESIRED_FUNCTION_ASSOCIATIONS" ]; then
-    echo "Distribution CustomErrorResponses and function association already match desired config — nothing to do."
+MD_BEHAVIOR=$(jq -cn --arg originId "$CONTENT_ORIGIN_ID" --arg cachePolicyId "$CACHING_DISABLED_POLICY_ID" --argjson functionAssociations "$DESIRED_FUNCTION_ASSOCIATIONS" '
+    {
+        PathPattern: "*.md",
+        TargetOriginId: $originId,
+        ViewerProtocolPolicy: "redirect-to-https",
+        AllowedMethods: { Quantity: 2, Items: ["HEAD", "GET"], CachedMethods: { Quantity: 2, Items: ["HEAD", "GET"] } },
+        Compress: false,
+        SmoothStreaming: false,
+        LambdaFunctionAssociations: { Quantity: 0 },
+        FunctionAssociations: $functionAssociations,
+        FieldLevelEncryptionId: "",
+        CachePolicyId: $cachePolicyId,
+        TrustedSigners: { Enabled: false, Quantity: 0 },
+        TrustedKeyGroups: { Enabled: false, Quantity: 0 },
+        GrpcConfig: { Enabled: false }
+    }
+')
+LLMS_BEHAVIOR=$(echo "$MD_BEHAVIOR" | jq -c '.PathPattern = "/llms.txt"')
+DESIRED_BEHAVIOR_ITEMS=$(jq -cn --argjson md "$MD_BEHAVIOR" --argjson llms "$LLMS_BEHAVIOR" '[$md, $llms] | sort_by(.PathPattern)')
+
+echo "Updating distribution: content origin + *.md/llms.txt behaviors + site-router associations + CustomErrorResponses removal..."
+jq \
+    --argjson contentOrigin "$DESIRED_CONTENT_ORIGIN" \
+    --argjson functionAssociations "$DESIRED_FUNCTION_ASSOCIATIONS" \
+    --argjson behaviorItems "$DESIRED_BEHAVIOR_ITEMS" \
+    '
+    .DistributionConfig as $dc
+    | ($dc.Origins.Items | map(select(.Id != $contentOrigin.Id)) + [$contentOrigin]) as $origins
+    | ($dc.CacheBehaviors.Items // [] | map(select(.PathPattern != "*.md" and .PathPattern != "/llms.txt")) + $behaviorItems) as $behaviors
+    | $dc
+    | .Origins = { Quantity: ($origins | length), Items: $origins }
+    | .CacheBehaviors = { Quantity: ($behaviors | length), Items: $behaviors }
+    | .DefaultCacheBehavior.FunctionAssociations = $functionAssociations
+    | .CustomErrorResponses = { Quantity: 0, Items: [] }
+' "$CURRENT" > "$NEW_CONFIG"
+
+if diff -q <(jq -S '.DistributionConfig' "$CURRENT") <(jq -S '.' "$NEW_CONFIG") > /dev/null 2>&1; then
+    echo "Distribution config already matches desired state — nothing to do."
     exit 0
 fi
-
-echo "Updating distribution: CustomErrorResponses + viewer-request function association..."
-jq --argjson errorItems "$DESIRED_ERROR_ITEMS" --argjson functionItems "$DESIRED_FUNCTION_ASSOCIATIONS" '
-    .DistributionConfig
-    | .CustomErrorResponses = {
-        "Quantity": ($errorItems | length),
-        "Items": $errorItems
-      }
-    | .DefaultCacheBehavior.FunctionAssociations = {
-        "Quantity": ($functionItems | length),
-        "Items": $functionItems
-      }
-' "$CURRENT" > "$NEW_CONFIG"
 
 aws cloudfront update-distribution \
     $PROFILE_FLAG \
