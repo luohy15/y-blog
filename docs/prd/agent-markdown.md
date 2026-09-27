@@ -253,4 +253,4 @@ Human readers see no change in pages, URLs, or loading behaviour.
 
 | Todo | Outcome | Design | Plan | Decisions | Review | Status |
 |------|---------|--------|------|-----------|--------|--------|
-| 3710 | Verbatim twins via same-host routing, content-publish navigation and `/llms.txt`, alternate links (rev 3; build-time candidate `49e1d4a` and rev 2 superseded) | - | `pages/plan-3710-agent-markdown.md` | - | `pages/review-3710-agent-markdown.md` | planned (rev 3), not published |
+| 3710 | Verbatim twins via same-host routing, content-publish navigation and `/llms.txt`, alternate links (rev 3; build-time candidate `49e1d4a` and rev 2 superseded) | - | `pages/plan-3710-agent-markdown.md` | `pages/review-3710-agent-markdown.md` (round 4, Story 29: accepted content-side mapping exception) | `pages/review-3710-agent-markdown.md` | approved (round 4), publication authorization pending |
