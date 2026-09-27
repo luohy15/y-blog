@@ -49,6 +49,18 @@ export function decodeLegacyEncodedSegment(segment: string): string | null {
 const RETIRED_AGENT_TAGS = ['y-agent', 'ai-coding'] as const;
 const CANONICAL_AGENT_TAG = 'ai-agent';
 
+export function encodeLegacyTagSegment(tag: string): string {
+  return LEGACY_TAG_SEGMENT_PREFIX + bytesToBase64Url(utf8ToBytes(tag));
+}
+
+export function legacyAliasSegmentsFor(tag: string): string[] {
+  const aliases: string[] = [encodeLegacyTagSegment(tag)];
+  if (tag === CANONICAL_AGENT_TAG) {
+    aliases.push(...RETIRED_AGENT_TAGS);
+  }
+  return aliases;
+}
+
 function resolvedLegacyTag(segment: string): string | null {
   const decoded = decodeLegacyEncodedSegment(segment);
   const candidate = decoded ?? segment;

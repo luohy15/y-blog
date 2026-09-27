@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { LanguageProvider } from './contexts/LanguageContext';
 import HtmlLangUpdater from './components/HtmlLangUpdater';
+import MarkdownAlternateLink from './components/MarkdownAlternateLink';
 import ScrollToTop from './components/ScrollToTop';
 import Header from './components/Header';
 import HomePage from './pages/HomePage';
@@ -21,6 +22,7 @@ export default function App() {
   return (
     <LanguageProvider>
       <HtmlLangUpdater />
+      <MarkdownAlternateLink />
       <ScrollToTop />
       <div className="min-h-screen bg-background font-sans antialiased">
         <Header />

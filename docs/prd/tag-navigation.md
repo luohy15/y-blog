@@ -149,6 +149,7 @@ Tags become a navigation surface, not just labels:
 - Related-article recommendations by similarity rather than by shared tag.
 - Migrating the blog off its current hosting or changing the sync pipeline beyond exposing tags in the index.
 - Agent-driven browser screenshots or runtime UI checks; runtime verification is the user's.
+- Markdown twins of the Tags pages for agents; owned by `agent-markdown`.
 
 ## Delivery Records
 

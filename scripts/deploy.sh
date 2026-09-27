@@ -16,23 +16,42 @@ fi
 
 echo "Deploying to S3 bucket: $WEB_BUCKET_NAME"
 
-# Sync non-HTML files with long cache
+# Sync non-HTML, non-Markdown, non-txt files with long cache
 aws s3 sync "$STATIC_DIR" "s3://$WEB_BUCKET_NAME" \
     $PROFILE_FLAG \
     --delete \
     --cache-control "public, max-age=31536000" \
     --exclude "*.html" \
     --exclude "*.txt" \
-    --exclude "*.xml"
+    --exclude "*.xml" \
+    --exclude "*.md"
 
-# Sync HTML files with short cache
+# Sync HTML and XML files with short cache
 aws s3 sync "$STATIC_DIR" "s3://$WEB_BUCKET_NAME" \
     $PROFILE_FLAG \
     --delete \
     --cache-control "public, max-age=3600" \
+    --exclude "*" \
     --include "*.html" \
-    --include "*.txt" \
     --include "*.xml"
+
+# Sync Markdown twins with the correct content type
+aws s3 sync "$STATIC_DIR" "s3://$WEB_BUCKET_NAME" \
+    $PROFILE_FLAG \
+    --delete \
+    --cache-control "public, max-age=3600" \
+    --content-type "text/markdown; charset=utf-8" \
+    --exclude "*" \
+    --include "*.md"
+
+# Sync llms.txt (and any other plain-text file) with the correct content type
+aws s3 sync "$STATIC_DIR" "s3://$WEB_BUCKET_NAME" \
+    $PROFILE_FLAG \
+    --delete \
+    --cache-control "public, max-age=3600" \
+    --content-type "text/plain; charset=utf-8" \
+    --exclude "*" \
+    --include "*.txt"
 
 echo "Static files deployed!"
 
