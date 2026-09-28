@@ -13,6 +13,7 @@ export const translations = {
       created: 'Created',
       updated: 'Updated',
       history: 'History',
+      viewAsMarkdown: 'View as Markdown',
     },
     tags: {
       title: 'Tags',
@@ -41,6 +42,7 @@ export const translations = {
       created: '作成',
       updated: '更新',
       history: '履歴',
+      viewAsMarkdown: 'Markdown で表示',
     },
     tags: {
       title: 'タグ',
@@ -69,6 +71,7 @@ export const translations = {
       created: '创建',
       updated: '更新',
       history: '历史',
+      viewAsMarkdown: '以 Markdown 查看',
     },
     tags: {
       title: '标签',
@@ -97,6 +100,7 @@ export const translations = {
       created: '建立',
       updated: '更新',
       history: '歷史',
+      viewAsMarkdown: '以 Markdown 檢視',
     },
     tags: {
       title: '標籤',

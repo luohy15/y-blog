@@ -11,8 +11,9 @@ import {
   legacyRedirectTarget,
   resolveSelectedTag,
 } from '@/lib/tags';
+import ViewAsMarkdownLink from '@/components/ViewAsMarkdownLink';
 
-function TagsPageFrame({ language, children }: { language: LanguageCode; children: ReactNode }) {
+function TagsPageFrame({ language, hasMarkdown, children }: { language: LanguageCode; hasMarkdown: boolean; children: ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <div className="flex justify-center">
@@ -22,6 +23,7 @@ function TagsPageFrame({ language, children }: { language: LanguageCode; childre
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4 leading-tight">
                 {getTranslation(language, 'tags.title')}
               </h1>
+              {hasMarkdown && <ViewAsMarkdownLink language={language} />}
             </header>
             {children}
           </article>
@@ -129,10 +131,11 @@ export default function TagsPage() {
   }
 
   const writingHref = addLanguageToPath('/writing', urlLanguage);
+  const hasMarkdown = !tagSegment || (selected.tag != null && tags.includes(selected.tag));
 
   if (tags.length === 0) {
     return (
-      <TagsPageFrame language={urlLanguage}>
+      <TagsPageFrame language={urlLanguage} hasMarkdown={hasMarkdown}>
         <div className="text-center py-14 text-muted-foreground">
           <p className="mb-3">{getTranslation(urlLanguage, 'tags.empty')}</p>
           <Link to={writingHref} className="text-foreground underline underline-offset-4">
@@ -157,7 +160,7 @@ export default function TagsPage() {
   );
 
   return (
-    <TagsPageFrame language={urlLanguage}>
+    <TagsPageFrame language={urlLanguage} hasMarkdown={hasMarkdown}>
       <details key={selected.tag} className="md:hidden mb-6 border border-border rounded-lg bg-card">
         <summary className="flex justify-between items-center gap-3 min-h-12 px-4 py-3 cursor-pointer font-semibold break-words">
           <span>{selected.tag}</span>

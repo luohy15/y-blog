@@ -5,6 +5,7 @@ import { LanguageCode } from '@/lib/language';
 import { getTranslation } from '@/lib/translations';
 import { getTagHref, relatedGroups } from '@/lib/tags';
 import Markdown from '@/components/Markdown';
+import ViewAsMarkdownLink from '@/components/ViewAsMarkdownLink';
 import TOCDesktop from '@/components/TOCDesktop';
 import ArticleNavDesktop from '@/components/ArticleNavDesktop';
 import PostMobileNav from '@/components/PostMobileNav';
@@ -177,46 +178,49 @@ export default function PostPage({ slug = '', lang, showTime = true, showToc = t
                 </div>
               )}
 
-              {showTime && (
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z" />
-                    </svg>
-                    <time dateTime={post.create_time}>
-                      {getTranslation(lang || 'en', 'common.created')} {formatDate(post.create_time, lang)}
-                    </time>
-                  </div>
-                  {post.update_time !== post.create_time && (
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
+                {showTime && (
+                  <>
                     <div className="flex items-center gap-2">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z" />
                       </svg>
-                      <time dateTime={post.update_time}>
-                        {getTranslation(lang || 'en', 'common.updated')} {formatDate(post.update_time, lang)}
+                      <time dateTime={post.create_time}>
+                        {getTranslation(lang || 'en', 'common.created')} {formatDate(post.create_time, lang)}
                       </time>
                     </div>
-                  )}
-                  {(() => {
-                    const historyUrl = getPostHistoryUrl(post);
-                    if (!historyUrl) return null;
-                    return (
-                      <a
-                        href={historyUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
-                        title={getTranslation(lang || 'en', 'common.history')}
-                      >
+                    {post.update_time !== post.create_time && (
+                      <div className="flex items-center gap-2">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        <span>{getTranslation(lang || 'en', 'common.history')}</span>
-                      </a>
-                    );
-                  })()}
-                </div>
-              )}
+                        <time dateTime={post.update_time}>
+                          {getTranslation(lang || 'en', 'common.updated')} {formatDate(post.update_time, lang)}
+                        </time>
+                      </div>
+                    )}
+                    {(() => {
+                      const historyUrl = getPostHistoryUrl(post);
+                      if (!historyUrl) return null;
+                      return (
+                        <a
+                          href={historyUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors"
+                          title={getTranslation(lang || 'en', 'common.history')}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>{getTranslation(lang || 'en', 'common.history')}</span>
+                        </a>
+                      );
+                    })()}
+                  </>
+                )}
+                <ViewAsMarkdownLink language={language} />
+              </div>
             </header>
 
             <div className="prose prose-lg prose-slate dark:prose-invert max-w-none">
