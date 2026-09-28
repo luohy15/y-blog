@@ -183,7 +183,8 @@ export default function PostPage({ slug = '', lang, showTime = true, showToc = t
                   <>
                     <div className="flex items-center gap-2">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z" />
+                        <rect x="3" y="5" width="18" height="16" rx="2" strokeWidth={2} />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10" />
                       </svg>
                       <time dateTime={post.create_time}>
                         {getTranslation(lang || 'en', 'common.created')} {formatDate(post.create_time, lang)}
