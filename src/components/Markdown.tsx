@@ -9,6 +9,7 @@ import 'katex/dist/katex.min.css';
 import { Components } from 'react-markdown';
 import { useMemo } from 'react';
 import { generateSlug } from '@/lib/toc';
+import { opensInNewTab } from '@/lib/links';
 import JsonDisplay from './JsonDisplay';
 import { ImageGalleryProvider, useGallery } from './Lightbox';
 
@@ -112,7 +113,7 @@ const markdownComponents: Components = {
     </blockquote>
   ),
   a: ({ href, children, onClick, ...props }) => {
-    const isExternal = href && (href.startsWith('http') || href.startsWith('https'));
+    const newTab = opensInNewTab(href);
 
     // Handle onclick string conversion
     const handleClick = onClick && typeof onClick === 'string'
@@ -129,8 +130,8 @@ const markdownComponents: Components = {
     return (
       <a
         href={href}
-        target={isExternal ? '_blank' : undefined}
-        rel={isExternal ? 'noopener noreferrer' : undefined}
+        target={newTab ? '_blank' : undefined}
+        rel={newTab ? 'noopener noreferrer' : undefined}
         onClick={handleClick}
         className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline decoration-blue-600/30 hover:decoration-blue-600 transition-colors break-words overflow-wrap-anywhere"
         {...props}
