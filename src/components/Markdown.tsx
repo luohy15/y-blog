@@ -16,6 +16,7 @@ import { ImageGalleryProvider, useGallery } from './Lightbox';
 interface MarkdownProps {
   content: string;
   className?: string;
+  safe?: boolean;
 }
 
 // Hover anchor link rendered inside id'd headings so users can grab a section URL.
@@ -291,9 +292,8 @@ function rehypeDisplayLineBreaks() {
   };
 }
 
-export default function Markdown({ content, className = '' }: MarkdownProps) {
-  // Preprocess content to handle Hugo shortcodes
-  const processedContent = parseShortcodes(content);
+export default function Markdown({ content, className = '', safe = false }: MarkdownProps) {
+  const processedContent = safe ? content : parseShortcodes(content);
 
   const images = useMemo(
     () => (typeof processedContent === 'string' ? extractImageUrls(processedContent) : []),
@@ -311,7 +311,7 @@ export default function Markdown({ content, className = '' }: MarkdownProps) {
       <ImageGalleryProvider images={images}>
         <ReactMarkdown
           remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
-          rehypePlugins={[rehypeRaw, rehypeDisplayLineBreaks, rehypeKatex]}
+          rehypePlugins={safe ? [rehypeDisplayLineBreaks, rehypeKatex] : [rehypeRaw, rehypeDisplayLineBreaks, rehypeKatex]}
           components={markdownComponents}
         >
           {processedContent}
