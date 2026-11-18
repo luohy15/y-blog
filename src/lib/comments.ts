@@ -4,6 +4,9 @@ export const COMMENT_TITLE_PREFIX = '[Comments] ';
 const MARKER_RE = /<!--\s*y-blog-comment-thread:\s*([^\s>]+)\s*-->/;
 const API_ROOT = `https://api.github.com/repos/${COMMENTS_REPO}`;
 const REQUEST_TIMEOUT_MS = 15000;
+const CACHE_PREFIX = 'y-blog:comments:v1:';
+const THREAD_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const PAGE_CACHE_TTL_MS = 60 * 1000;
 
 export function commentMarker(slug: string): string {
   return `<!-- y-blog-comment-thread: ${slug} -->`;
@@ -98,6 +101,61 @@ function nextPageUrl(linkHeader: string | null): string | null {
   return null;
 }
 
+interface CacheEntry<T> {
+  at: number;
+  value: T;
+}
+
+function sessionStore(): Storage | null {
+  try {
+    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function cacheGet<T>(key: string, ttlMs: number): T | undefined {
+  const store = sessionStore();
+  if (!store) return undefined;
+  try {
+    const raw = store.getItem(CACHE_PREFIX + key);
+    if (!raw) return undefined;
+    const entry = JSON.parse(raw) as CacheEntry<T>;
+    if (!entry || typeof entry.at !== 'number' || Date.now() - entry.at > ttlMs) {
+      store.removeItem(CACHE_PREFIX + key);
+      return undefined;
+    }
+    return entry.value;
+  } catch {
+    return undefined;
+  }
+}
+
+function cacheSet<T>(key: string, value: T): void {
+  const store = sessionStore();
+  if (!store) return;
+  try {
+    store.setItem(CACHE_PREFIX + key, JSON.stringify({ at: Date.now(), value }));
+  } catch {
+    // Storage full or blocked: caching is best-effort, the fetch result still renders.
+  }
+}
+
+export class RateLimitError extends Error {
+  constructor(message = 'GitHub API rate limit reached') {
+    super(message);
+    this.name = 'RateLimitError';
+  }
+}
+
+function isRateLimitResponse(response: Response): boolean {
+  if (response.status !== 403 && response.status !== 429) return false;
+  return (
+    response.headers.get('x-ratelimit-remaining') === '0' ||
+    response.headers.has('retry-after')
+  );
+}
+
 function requestSignal(parent?: AbortSignal): { signal: AbortSignal; cleanup: () => void } {
   const controller = new AbortController();
   const timer = setTimeout(() => {
@@ -131,6 +189,7 @@ async function githubGet<T>(url: string, signal?: AbortSignal): Promise<{ data: 
       },
     });
     if (!response.ok) {
+      if (isRateLimitResponse(response)) throw new RateLimitError();
       throw new Error(`GitHub API ${response.status}`);
     }
     const data = await response.json() as T;
@@ -145,14 +204,35 @@ export async function listThreadIssues(signal?: AbortSignal): Promise<IssueLike[
   return data;
 }
 
-export async function findThreadForSlug(slug: string, signal?: AbortSignal): Promise<CommentThread | null> {
-  return findThread(await listThreadIssues(signal), slug);
+export interface FetchOptions {
+  bypassCache?: boolean;
 }
 
-export async function listComments(thread: CommentThread, pageUrl?: string, signal?: AbortSignal): Promise<CommentPage> {
+export async function findThreadForSlug(
+  slug: string,
+  signal?: AbortSignal,
+  options: FetchOptions = {},
+): Promise<CommentThread | null> {
+  const key = `thread:${slug}`;
+  const cached = options.bypassCache ? undefined : cacheGet<CommentThread | null>(key, THREAD_CACHE_TTL_MS);
+  if (cached !== undefined) return cached;
+  const thread = findThread(await listThreadIssues(signal), slug);
+  cacheSet(key, thread);
+  return thread;
+}
+
+export async function listComments(
+  thread: CommentThread,
+  pageUrl?: string,
+  signal?: AbortSignal,
+  options: FetchOptions = {},
+): Promise<CommentPage> {
   const url = pageUrl ?? `${API_ROOT}/issues/${thread.number}/comments?per_page=100`;
+  const key = `page:${thread.slug}:${url}`;
+  const cached = options.bypassCache ? undefined : cacheGet<CommentPage>(key, PAGE_CACHE_TTL_MS);
+  if (cached !== undefined) return cached;
   const { data, response } = await githubGet<RawComment[]>(url, signal);
-  return {
+  const page: CommentPage = {
     comments: data.map((item) => ({
       id: item.id,
       body: item.body ?? '',
@@ -162,4 +242,6 @@ export async function listComments(thread: CommentThread, pageUrl?: string, sign
     })),
     nextUrl: nextPageUrl(response.headers.get('Link')),
   };
+  cacheSet(key, page);
+  return page;
 }

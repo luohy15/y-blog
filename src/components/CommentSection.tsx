@@ -6,6 +6,7 @@ import {
   findThreadForSlug,
   listComments,
   newThreadUrl,
+  RateLimitError,
   repoIssuesUrl,
   type CommentThread,
   type ThreadComment,
@@ -17,7 +18,8 @@ interface CommentSectionProps {
   articleUrl: string;
 }
 
-type Status = 'loading' | 'empty' | 'error' | 'ready';
+type Status = 'loading' | 'empty' | 'error' | 'rate-limited' | 'ready';
+type MoreError = 'error' | 'rate-limit' | null;
 
 function formatCommentTime(iso: string, language: LanguageCode): string {
   const date = new Date(iso);
@@ -38,36 +40,43 @@ export default function CommentSection({ slug, language, articleUrl }: CommentSe
   const [comments, setComments] = useState<ThreadComment[]>([]);
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [moreError, setMoreError] = useState(false);
+  const [moreError, setMoreError] = useState<MoreError>(null);
+  const [refreshSeq, setRefreshSeq] = useState(0);
   const requestRef = useRef<AbortController | null>(null);
+
+  const refresh = () => setRefreshSeq((seq) => seq + 1);
+  const bypassCache = refreshSeq > 0;
 
   useEffect(() => {
     const controller = new AbortController();
     requestRef.current = controller;
     let cancelled = false;
+    const bypass = refreshSeq > 0;
     setStatus('loading');
-    setThread(null);
+    setThread((current) => (current?.slug === slug ? current : null));
     setComments([]);
     setNextUrl(null);
     setLoadingMore(false);
-    setMoreError(false);
+    setMoreError(null);
 
-    findThreadForSlug(slug, controller.signal)
+    findThreadForSlug(slug, controller.signal, { bypassCache: bypass })
       .then(async (found) => {
         if (cancelled) return;
         if (!found) {
+          setThread(null);
           setStatus('empty');
           return;
         }
-        const page = await listComments(found, undefined, controller.signal);
-        if (cancelled) return;
         setThread(found);
+        const page = await listComments(found, undefined, controller.signal, { bypassCache: bypass });
+        if (cancelled) return;
         setComments(page.comments);
         setNextUrl(page.nextUrl);
         setStatus('ready');
       })
-      .catch(() => {
-        if (!cancelled) setStatus('error');
+      .catch((error) => {
+        if (cancelled) return;
+        setStatus(error instanceof RateLimitError ? 'rate-limited' : 'error');
       });
 
     return () => {
@@ -75,20 +84,22 @@ export default function CommentSection({ slug, language, articleUrl }: CommentSe
       controller.abort();
       if (requestRef.current === controller) requestRef.current = null;
     };
-  }, [slug]);
+  }, [slug, refreshSeq]);
 
   async function loadMore() {
     if (!thread || !nextUrl || loadingMore) return;
     const signal = requestRef.current?.signal;
     setLoadingMore(true);
-    setMoreError(false);
+    setMoreError(null);
     try {
-      const page = await listComments(thread, nextUrl, signal);
+      const page = await listComments(thread, nextUrl, signal, { bypassCache });
       if (signal?.aborted) return;
       setComments((current) => [...current, ...page.comments]);
       setNextUrl(page.nextUrl);
-    } catch {
-      if (!signal?.aborted) setMoreError(true);
+    } catch (error) {
+      if (!signal?.aborted) {
+        setMoreError(error instanceof RateLimitError ? 'rate-limit' : 'error');
+      }
     } finally {
       if (!signal?.aborted) setLoadingMore(false);
     }
@@ -99,9 +110,19 @@ export default function CommentSection({ slug, language, articleUrl }: CommentSe
 
   return (
     <section aria-labelledby="comments-heading" className="bg-card rounded-lg border shadow-sm p-4 sm:p-6 lg:p-8">
-      <h2 id="comments-heading" className="text-xl font-bold text-foreground mb-4">
-        {text('comments.title')}
-      </h2>
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h2 id="comments-heading" className="text-xl font-bold text-foreground">
+          {text('comments.title')}
+        </h2>
+        <button
+          type="button"
+          onClick={refresh}
+          disabled={status === 'loading'}
+          className="text-sm text-muted-foreground hover:text-foreground hover:underline disabled:opacity-50"
+        >
+          {text('comments.refresh')}
+        </button>
+      </div>
 
       {status === 'loading' && (
         <p className="text-sm text-muted-foreground">{text('comments.loading')}</p>
@@ -112,6 +133,20 @@ export default function CommentSection({ slug, language, articleUrl }: CommentSe
           <p className="text-sm text-muted-foreground">{text('comments.error')}</p>
           <a
             href={repoIssuesUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex text-sm text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            {text('comments.openOnGitHub')}
+          </a>
+        </div>
+      )}
+
+      {status === 'rate-limited' && (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">{text('comments.rateLimit')}</p>
+          <a
+            href={thread?.htmlUrl ?? repoIssuesUrl()}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex text-sm text-blue-600 dark:text-blue-400 hover:underline"
@@ -198,8 +233,21 @@ export default function CommentSection({ slug, language, articleUrl }: CommentSe
               {loadingMore ? text('comments.loading') : text('comments.loadMore')}
             </button>
           )}
-          {moreError && (
+          {moreError === 'error' && (
             <p className="text-sm text-muted-foreground">{text('comments.error')}</p>
+          )}
+          {moreError === 'rate-limit' && (
+            <p className="text-sm text-muted-foreground">
+              {text('comments.rateLimit')}{' '}
+              <a
+                href={thread.htmlUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {text('comments.openOnGitHub')}
+              </a>
+            </p>
           )}
 
           <a
