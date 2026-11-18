@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 import Markdown from '@/components/Markdown';
 import type { LanguageCode } from '@/lib/language';
 import { getTranslation } from '@/lib/translations';
@@ -107,6 +108,7 @@ export default function CommentSection({ slug, language, articleUrl }: CommentSe
 
   const text = (key: string) => getTranslation(language, key);
   const createUrl = newThreadUrl(slug, articleUrl);
+  const refreshing = status === 'loading' && refreshSeq > 0;
 
   return (
     <section aria-labelledby="comments-heading" className="bg-card rounded-lg border shadow-sm p-4 sm:p-6 lg:p-8">
@@ -118,9 +120,11 @@ export default function CommentSection({ slug, language, articleUrl }: CommentSe
           type="button"
           onClick={refresh}
           disabled={status === 'loading'}
-          className="text-sm text-muted-foreground hover:text-foreground hover:underline disabled:opacity-50"
+          aria-busy={refreshing || undefined}
+          className={`refresh-control${refreshing ? ' is-busy' : ''}`}
         >
-          {text('comments.refresh')}
+          <RefreshCw className="refresh-icon" aria-hidden="true" />
+          <span>{refreshing ? text('comments.refreshing') : text('comments.refresh')}</span>
         </button>
       </div>
 

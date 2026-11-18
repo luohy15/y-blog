@@ -128,3 +128,92 @@
 .rail-scroll::-webkit-scrollbar {
   display: none;
 }
+
+/* Comments Refresh control (design 4366): desktop follows the article meta
+   controls (icon + label, muted, hover to foreground). Below 640 px it becomes
+   a bordered 44 px pill with the same icon and label. */
+.refresh-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.375rem;
+  margin: -0.25rem -0.375rem;
+  border: 0;
+  border-radius: calc(var(--radius) - 4px);
+  background: transparent;
+  color: var(--muted-foreground);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+.refresh-control:hover {
+  color: var(--foreground);
+}
+.refresh-control:active {
+  color: var(--foreground);
+  background: var(--accent);
+  transform: translateY(1px);
+}
+.refresh-control:focus-visible {
+  outline: none;
+  color: var(--foreground);
+  box-shadow: 0 0 0 2px var(--card), 0 0 0 4px color-mix(in oklch, var(--ring) 70%, transparent);
+}
+.refresh-control:disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+.refresh-control.is-busy {
+  pointer-events: none;
+  color: var(--muted-foreground);
+}
+.refresh-control.is-busy:disabled {
+  opacity: 1;
+}
+.refresh-control .refresh-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+.refresh-control.is-busy .refresh-icon {
+  animation: y-spin 0.9s linear infinite;
+}
+
+@keyframes y-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .refresh-control {
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0 0.875rem;
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--card);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    font-size: 0.9375rem;
+  }
+  .refresh-control:hover {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+  .refresh-control:active {
+    background: color-mix(in oklch, var(--card), var(--foreground) 10%);
+    box-shadow: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .refresh-control.is-busy .refresh-icon {
+    animation: none;
+  }
+}
