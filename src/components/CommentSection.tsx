@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Markdown from '@/components/Markdown';
 import type { LanguageCode } from '@/lib/language';
 import { getTranslation } from '@/lib/translations';
@@ -39,23 +39,27 @@ export default function CommentSection({ slug, language, articleUrl }: CommentSe
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreError, setMoreError] = useState(false);
+  const requestRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+    requestRef.current = controller;
     let cancelled = false;
     setStatus('loading');
     setThread(null);
     setComments([]);
     setNextUrl(null);
+    setLoadingMore(false);
     setMoreError(false);
 
-    findThreadForSlug(slug)
+    findThreadForSlug(slug, controller.signal)
       .then(async (found) => {
         if (cancelled) return;
         if (!found) {
           setStatus('empty');
           return;
         }
-        const page = await listComments(found);
+        const page = await listComments(found, undefined, controller.signal);
         if (cancelled) return;
         setThread(found);
         setComments(page.comments);
@@ -68,21 +72,25 @@ export default function CommentSection({ slug, language, articleUrl }: CommentSe
 
     return () => {
       cancelled = true;
+      controller.abort();
+      if (requestRef.current === controller) requestRef.current = null;
     };
   }, [slug]);
 
   async function loadMore() {
     if (!thread || !nextUrl || loadingMore) return;
+    const signal = requestRef.current?.signal;
     setLoadingMore(true);
     setMoreError(false);
     try {
-      const page = await listComments(thread, nextUrl);
+      const page = await listComments(thread, nextUrl, signal);
+      if (signal?.aborted) return;
       setComments((current) => [...current, ...page.comments]);
       setNextUrl(page.nextUrl);
     } catch {
-      setMoreError(true);
+      if (!signal?.aborted) setMoreError(true);
     } finally {
-      setLoadingMore(false);
+      if (!signal?.aborted) setLoadingMore(false);
     }
   }
 
@@ -204,6 +212,47 @@ export default function CommentSection({ slug, language, articleUrl }: CommentSe
           </a>
         </div>
       )}
+    </section>
+  );
+}
+
+const LAZY_ROOT_MARGIN = '400px 0px';
+
+export function LazyCommentSection(props: CommentSectionProps) {
+  const containerRef = useRef<HTMLElement | null>(null);
+  const [activated, setActivated] = useState(false);
+
+  useEffect(() => {
+    if (activated) return;
+    const node = containerRef.current;
+    if (!node || typeof IntersectionObserver === 'undefined') {
+      setActivated(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) setActivated(true);
+      },
+      { rootMargin: LAZY_ROOT_MARGIN },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [activated]);
+
+  if (activated) return <CommentSection {...props} />;
+
+  const text = (key: string) => getTranslation(props.language, key);
+
+  return (
+    <section
+      ref={containerRef}
+      aria-labelledby="comments-heading"
+      className="bg-card rounded-lg border shadow-sm p-4 sm:p-6 lg:p-8"
+    >
+      <h2 id="comments-heading" className="text-xl font-bold text-foreground mb-4">
+        {text('comments.title')}
+      </h2>
+      <p className="text-sm text-muted-foreground">{text('comments.loading')}</p>
     </section>
   );
 }

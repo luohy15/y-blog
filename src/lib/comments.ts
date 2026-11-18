@@ -3,6 +3,7 @@ export const COMMENT_TITLE_PREFIX = '[Comments] ';
 
 const MARKER_RE = /<!--\s*y-blog-comment-thread:\s*([^\s>]+)\s*-->/;
 const API_ROOT = `https://api.github.com/repos/${COMMENTS_REPO}`;
+const REQUEST_TIMEOUT_MS = 15000;
 
 export function commentMarker(slug: string): string {
   return `<!-- y-blog-comment-thread: ${slug} -->`;
@@ -97,35 +98,62 @@ function nextPageUrl(linkHeader: string | null): string | null {
   return null;
 }
 
-async function githubGet(url: string): Promise<Response> {
-  const response = await fetch(url, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`GitHub API ${response.status}`);
+function requestSignal(parent?: AbortSignal): { signal: AbortSignal; cleanup: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort(new DOMException('Comments request timed out', 'TimeoutError'));
+  }, REQUEST_TIMEOUT_MS);
+  const forwardAbort = () => controller.abort(parent?.reason);
+  if (parent) {
+    if (parent.aborted) {
+      forwardAbort();
+    } else {
+      parent.addEventListener('abort', forwardAbort, { once: true });
+    }
   }
-  return response;
-}
-
-export async function listThreadIssues(): Promise<IssueLike[]> {
-  const response = await githubGet(`${API_ROOT}/issues?state=all&per_page=100`);
-  const issues = await response.json() as IssueLike[];
-  return issues;
-}
-
-export async function findThreadForSlug(slug: string): Promise<CommentThread | null> {
-  return findThread(await listThreadIssues(), slug);
-}
-
-export async function listComments(thread: CommentThread, pageUrl?: string): Promise<CommentPage> {
-  const url = pageUrl ?? `${API_ROOT}/issues/${thread.number}/comments?per_page=100`;
-  const response = await githubGet(url);
-  const raw = await response.json() as RawComment[];
   return {
-    comments: raw.map((item) => ({
+    signal: controller.signal,
+    cleanup: () => {
+      clearTimeout(timer);
+      parent?.removeEventListener('abort', forwardAbort);
+    },
+  };
+}
+
+async function githubGet<T>(url: string, signal?: AbortSignal): Promise<{ data: T; response: Response }> {
+  const scoped = requestSignal(signal);
+  try {
+    const response = await fetch(url, {
+      signal: scoped.signal,
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`GitHub API ${response.status}`);
+    }
+    const data = await response.json() as T;
+    return { data, response };
+  } finally {
+    scoped.cleanup();
+  }
+}
+
+export async function listThreadIssues(signal?: AbortSignal): Promise<IssueLike[]> {
+  const { data } = await githubGet<IssueLike[]>(`${API_ROOT}/issues?state=all&per_page=100`, signal);
+  return data;
+}
+
+export async function findThreadForSlug(slug: string, signal?: AbortSignal): Promise<CommentThread | null> {
+  return findThread(await listThreadIssues(signal), slug);
+}
+
+export async function listComments(thread: CommentThread, pageUrl?: string, signal?: AbortSignal): Promise<CommentPage> {
+  const url = pageUrl ?? `${API_ROOT}/issues/${thread.number}/comments?per_page=100`;
+  const { data, response } = await githubGet<RawComment[]>(url, signal);
+  return {
+    comments: data.map((item) => ({
       id: item.id,
       body: item.body ?? '',
       htmlUrl: item.html_url,

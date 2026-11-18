@@ -5,7 +5,7 @@ import { LanguageCode } from '@/lib/language';
 import { getTranslation } from '@/lib/translations';
 import { getTagHref, relatedGroups } from '@/lib/tags';
 import Markdown from '@/components/Markdown';
-import CommentSection from '@/components/CommentSection';
+import { LazyCommentSection } from '@/components/CommentSection';
 import ViewAsMarkdownLink from '@/components/ViewAsMarkdownLink';
 import TOCDesktop from '@/components/TOCDesktop';
 import ArticleNavDesktop from '@/components/ArticleNavDesktop';
@@ -230,7 +230,7 @@ export default function PostPage({ slug = '', lang, showTime = true, showToc = t
             </div>
           </article>
           {slug !== 'about' && (
-            <CommentSection
+            <LazyCommentSection
               slug={slug}
               language={language}
               articleUrl={`${window.location.origin}${getPostHref(post, lang)}`}
